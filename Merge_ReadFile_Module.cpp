@@ -64,7 +64,6 @@ Merge_ReadFile_Module::svc()
                 size_t result = fread (buf_element->ptr,1,line_size,data->vec_mid_fp_[i].fp_);
                 buf_element->wt_pos = line_size;
                 end = buf_element->wt_pos;
-                SP_LOGI("end(%d)\n", end);
                 while(end!=0&&*(buf_element->ptr+ --end)!= '\n');
                 if (end != 0)
                     ++end;
@@ -82,7 +81,7 @@ Merge_ReadFile_Module::svc()
                     SP_NEW(c_data, Merge_CRequest(data));
                     for(int j =  data->vec_buf_[i].size() - count; j < data->vec_buf_[i].size(); ++j)
                         c_data->idx_.emplace_back(std::make_pair(i, j));
-                    SP_LOGI("i=%d,count=%d,size=%d\n",i,count,c_data->idx_.size());
+                    SP_DEBUG("i=%d,count=%d,size=%d\n",i,count,c_data->idx_.size());
                     SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)c_data));
                     ++data->size_split_buf;
                     put_next(msg);
@@ -100,7 +99,7 @@ Merge_ReadFile_Module::svc()
                 SP_NEW(c_data, Merge_CRequest(data));
                 for(int j =  data->vec_buf_[i].size() - count; j < data->vec_buf_[i].size(); ++j)
                     c_data->idx_.emplace_back(std::make_pair(i, j));
-                SP_LOGI("i=%d,count=%d,size=%d\n",i,count,c_data->idx_.size());
+                SP_DEBUG("i=%d,count=%d,size=%d\n",i,count,c_data->idx_.size());
                 SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)c_data));
                 ++data->size_split_buf;
                 put_next(msg);

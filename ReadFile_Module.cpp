@@ -61,7 +61,7 @@ ReadFile_Module::svc()
                 continue;
             }
             end = wt_begin + line_size;
-            SP_LOGI("wt_begin(%zu),line_size(%zu),length(%zu), end(%zu), data->end(%zu)\n", wt_begin,line_size,length,end,data->end_);
+            SP_DEBUG("wt_begin(%zu),line_size(%zu),length(%zu), end(%zu), data->end(%zu)\n", wt_begin,line_size,length,end,data->end_);
             wt_begin = wt_begin + line_size;
             SP_NEW(c_data, CRequest(data));
             c_data->buffer_ = data->buffer_;
@@ -83,7 +83,7 @@ ReadFile_Module::svc()
             }
             c_data->begin_ = begin;
             c_data->end_ = end;
-            SP_LOGI("begin(%zu),end(%zu)\n",begin,end);
+            SP_DEBUG("begin(%zu),end(%zu)\n",begin,end);
             begin = end;
             SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)c_data));
             ++data->size_split_buf;

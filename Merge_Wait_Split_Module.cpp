@@ -86,7 +86,7 @@ Merge_Wait_Split_Module::svc()
             data->request_->last_idx_[1] = idx1;
             for (uint8_t i = 0; i <= idx; ++i)
             {
-                for (uint8_t j = 0; j < (i==idx?idx1:26); ++j)
+                for (uint8_t j = 0; j <= (i==idx?idx1:25); ++j)
                 {
                     for (uint8_t k = 0; k < 26; ++k)
                     {

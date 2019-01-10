@@ -291,6 +291,7 @@ int main(int argc, char *argv[])
         SP_Message_Queue * q = NULL;
         SP_Message_Block_Base * buf_msg = NULL;
         int i, j, k;
+        int used_buf_size;
         for(i = 0; i < mid_file_ptr.size(); ++i)
         {
             q = new SP_Message_Queue;
@@ -327,9 +328,7 @@ int main(int argc, char *argv[])
         merge_data->vec_buf_.resize(split_size);
         merge_data->vec_last_idx_.resize(split_size);
         merge_data->vec_last_ptr_.resize(split_size);
-        std::vector<size_t> alive_fp(split_size, 0);
-        for(i = 0; i < split_size; ++i)
-            alive_fp[i] = i;
+        std::vector<bool> alive_fp(split_size, true);
         SP_LOGI("split_size_=%d\n", merge_data->split_size_);
         while(merge_data->split_size_ > 1)
         {
@@ -347,50 +346,63 @@ int main(int argc, char *argv[])
             }
             for (i = 0; i < alive_fp.size(); ++i)
             {
-                for (j = 0; j < merge_data->vec_buf_[alive_fp[i]].size(); ++j)
+                used_buf_size = 0;
+                for (j = 0; j < merge_data->vec_buf_[i].size(); ++j)
                 {
-                    if (merge_data->vec_last_ptr_[alive_fp[i]].ptr - merge_data->vec_buf_[alive_fp[i]][j]->ptr < merge_data->vec_buf_[alive_fp[i]][j]->length)
-                        break;
-                }
-                if (j != 0)
-                {
-                    for (k = 0; k < j; ++k)
+                    if (merge_data->vec_last_ptr_[i].ptr > merge_data->vec_buf_[i][j]->ptr
+                        && merge_data->vec_last_ptr_[i].ptr - merge_data->vec_buf_[i][j]->ptr 
+                        < merge_data->vec_buf_[i][j]->length)
                     {
-                        buf = merge_data->vec_buf_[alive_fp[i]][k];
+                        used_buf_size = j;
+                        //SP_LOGI("i=%d,j=%d,(%d,%d)(%p)\n",i,j,merge_data->vec_last_ptr_[i].i,merge_data->vec_last_ptr_[i].j,merge_data->vec_last_ptr_[i].ptr);
+                        break;
+                    }
+                }
+                if (used_buf_size != 0)
+                {
+                    for (k = 0; k < used_buf_size; ++k)
+                    {
+                        buf = merge_data->vec_buf_[i][k];
                         buf->wt_pos = 0;
                         buf->rd_pos = 0;
                         SP_NEW_RETURN(buf_msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
-                        mem_pool_rd[alive_fp[i]]->enqueue(buf_msg);
+                        mem_pool_rd[i]->enqueue(buf_msg);
                     }
-                    merge_data->vec_buf_[alive_fp[i]].erase(merge_data->vec_buf_[alive_fp[i]].begin(),
-                                                            merge_data->vec_buf_[alive_fp[i]].begin() + j);
+                    merge_data->vec_buf_[i].erase(merge_data->vec_buf_[i].begin(),
+                                                            merge_data->vec_buf_[i].begin() + used_buf_size);
                 }
-                if (merge_data->vec_mid_fp_[alive_fp[i]].wt_pos == merge_data->vec_mid_fp_[alive_fp[i]].size_)
+                if (!alive_fp[i])
+                    continue;
+                if (merge_data->vec_mid_fp_[i].wt_pos == merge_data->vec_mid_fp_[i].size_)
                 {
+                    alive_fp[i] = false;
                     merge_data->split_size_--;
-                    fclose(merge_data->vec_mid_fp_[alive_fp[i]].fp_);
-                    merge_data->vec_last_idx_[alive_fp[i]] = make_pair(26,26);
+                    fclose(merge_data->vec_mid_fp_[i].fp_);
+                    merge_data->vec_last_idx_[i] = make_pair(26,26);
                     offset = 0;
-                    while(!mem_pool_rd[alive_fp[i]]->is_empty())
+                    if (merge_data->split_size_ > 1)
                     {
-                        mem_pool_rd[alive_fp[i]]->dequeue(buf_msg);
-                        if (offset == alive_fp[i])
+                        while(!mem_pool_rd[i]->is_empty())
+                        {
+                            mem_pool_rd[i]->dequeue(buf_msg);
+                            while(!alive_fp[offset])
+                                offset = (offset + 1) % alive_fp.size();
+                            mem_pool_rd[offset]->enqueue(buf_msg);
                             offset = (offset + 1) % alive_fp.size();
-                        mem_pool_rd[offset]->enqueue(buf_msg);
-                        offset = (offset + 1) % alive_fp.size();
+                        }
                     }
-                    alive_fp.erase(alive_fp.begin()+i);
-                    i--;
                 }
             }
         }
+        SP_LOGI("out\n");
 
         SP_Stream * s_instance_finalstream = NULL;
-        SP_Module * final_modules[2];
+        SP_Module * final_modules[3];
         SP_NEW_RETURN(s_instance_finalstream, SP_Stream, -1);
-        SP_NEW_RETURN(final_modules[0], Final_Write2Buf_Module(6), -1);
-        SP_NEW_RETURN(final_modules[1], Final_Write2File_Module(1), -1);
-        for (i = 1; i >= 0; --i)
+        SP_NEW_RETURN(final_modules[0], Merge_Sort_Module(6), -1);
+        SP_NEW_RETURN(final_modules[1], Final_Write2Buf_Module(6), -1);
+        SP_NEW_RETURN(final_modules[2], Final_Write2File_Module(1), -1);
+        for (i = 2; i >= 0; --i)
         {
             s_instance_finalstream->push_module(final_modules[i]);
         }

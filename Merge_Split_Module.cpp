@@ -62,7 +62,9 @@ Merge_Split_Module::svc()
             end = begin;
             length = data->request_->vec_buf_[data->idx_[i].first][data->idx_[i].second]->wt_pos;
             buf = data->request_->vec_buf_[data->idx_[i].first][data->idx_[i].second]->ptr;
-            SP_LOGI("Merge_Split_Module:begin(%zu),length(%zu)\n", begin, length);
+            SP_DEBUG("Merge_Split_Module:begin(%zu),length(%zu)\n", begin, length);
+            if (index==2)
+                SP_LOGI("Merge_Split_Module:begin(%zu),length(%zu)\n", begin, length);
             while(end < length)
             {
                 if (buf[end] != '\n')
@@ -84,11 +86,6 @@ Merge_Split_Module::svc()
                     offset = buf[begin]-'a';
                     offset1 = buf[begin+1]-'a';
                     offset2 = buf[begin+2]-'a';
-                    if (offset>25||offset1>25||offset2>25)
-                    {
-                        SP_LOGI("begin(%zu)end(%zu)length(%zu)\n",begin,end,length);
-                        SP_LOGI("(%d,%d,%d)%s",offset,offset1,offset2,buf);
-                    }
                     request->lock_str_list_[offset][offset1][offset2].lock();
                     request->str_list_[offset][offset1][offset2].emplace_back(std::make_pair(buf + begin + 3, index));
                     ++request->vec_char_size_[offset][offset1][index];
@@ -97,6 +94,8 @@ Merge_Split_Module::svc()
                 begin = ++end;
             }
             request->vec_buf_[data->idx_[i].first][data->idx_[i].second]->rd_pos = end;
+            if (index==2)
+                SP_LOGI("Merge_Split_Module:end(%zu),(%d,%d,%d)size(%d)\n", end, offset,offset1,offset2,request->vec_char_size_[offset][offset1][index]);
         }
         for (size_t i = 0; i < 26; ++i)
         {
