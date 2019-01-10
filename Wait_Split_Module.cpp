@@ -43,8 +43,9 @@ Wait_Split_Module::svc()
         data = reinterpret_cast<CRequest *>(msg->data());
         data->request_->lock_.lock();
         ++data->request_->count_;
+        data->request_->end_ = data->request_->end_ < data->end_ ? data->end_ : data->request_->end_;
         data->request_->lock_.unlock();
-        end = end < data->end_ ? data->end_ : end;
+        end = data->request_->end_;
         if (data->request_->count_ == data->request_->size_split_buf && end == data->request_->length_)
         {
             data->request_->lock_.lock();

@@ -53,11 +53,11 @@ ReadFile_Module::svc()
             {
                 line_size = length - wt_begin;
             }
-            size_t result = fread (buf + wt_begin,1,line_size,fp_in);
+            size_t result = fread (buf + wt_begin,1,line_size,data->fp_in_);
             if (result != line_size)
             {
                 fputs("Read file failed!\n", stderr);
-                fseek (fp_in, -result, SEEK_CUR);
+                fseek (data->fp_in_, -result, SEEK_CUR);
                 continue;
             }
             end = wt_begin + line_size;
@@ -72,6 +72,12 @@ ReadFile_Module::svc()
                     while(*(c_data->buffer_ + end) != '\n')
                         --end;
                     ++end;
+                } else
+                {
+                    while(*(c_data->buffer_ + --end) != '\n');
+                    ++end;
+                    fseek (data->fp_in_, -(length - end), SEEK_CUR);
+                    data->length_ = end;
                 }
             }
             c_data->begin_ = begin;

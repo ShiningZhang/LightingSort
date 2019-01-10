@@ -1,29 +1,29 @@
-#include "Write2File_Module.h"
+#include "Final_Write2File_Module.h"
 #include "Global_Macros.h"
 #include "SP_Message_Block_Base.h"
 #include "Request.h"
 #include "Global.h"
 
-Write2File_Module::Write2File_Module(int threads)
+Final_Write2File_Module::Final_Write2File_Module(int threads)
     :threads_num_(threads)
 {
 }
 
 
-Write2File_Module::~Write2File_Module()
+Final_Write2File_Module::~Final_Write2File_Module()
 {
 }
 
 
 int
-Write2File_Module::open()
+Final_Write2File_Module::open()
 {
     activate(threads_num_);
     return 0;
 }
 
 void
-Write2File_Module::svc()
+Final_Write2File_Module::svc()
 {
     static int sthread_num = 0;
     int thread_num;
@@ -32,8 +32,8 @@ Write2File_Module::svc()
     lock_.unlock();
     uint8_t offset = 0;
     uint8_t offset1 = 0;
-    Request * data = NULL;
-    CRequest * c_data = NULL;
+    Merge_Request * data = NULL;
+    Merge_CRequest * c_data = NULL;
     Buffer_Element *buf = NULL;
     char single_str_buf[256];
     size_t i = 0;
@@ -44,9 +44,9 @@ Write2File_Module::svc()
     {
         timeval t2,start;
         gettimeofday(&start,0);
-        c_data = reinterpret_cast<CRequest *>(msg->data());
+        c_data = reinterpret_cast<Merge_CRequest *>(msg->data());
         data = c_data->request_;
-        data->recv_str_list_[c_data->idx_[0]][c_data->idx_[1]] = c_data;
+        data->recv_str_list_[c_data->idx_[0].first][c_data->idx_[0].second] = c_data;
         SP_DES(msg);
         while (offset < 26)
         {
@@ -82,14 +82,14 @@ Write2File_Module::svc()
                     break;
             } else
             {
-                /*
+                
                 ++offset1;
                 if (offset1 == 26)
                 {
                     ++offset;
                     offset1 = 0;
-                }*/
-                ++offset;
+                }
+                //++offset;
                 continue;
             }
             c_data = data->recv_str_list_[offset][offset1];
@@ -108,14 +108,14 @@ Write2File_Module::svc()
                 }
             }
             data->recv_str_list_[offset][offset1] = NULL;
-            /*
+            
             ++offset1;
             if (offset1 == 26)
             {
                 ++offset;
                 offset1 = 0;
-            }*/
-            ++offset;
+            }
+            //++offset;
             SP_DES(c_data);
         }
         if (offset == 26)
@@ -129,12 +129,12 @@ Write2File_Module::svc()
             put_next(msg);
         }
         gettimeofday(&t2,0);
-        SP_DEBUG("Write2File_Module=%ldms.\n", (t2.tv_sec-start.tv_sec)*1000+(t2.tv_usec-start.tv_usec)/1000);
+        SP_DEBUG("Final_Write2File_Module=%ldms.\n", (t2.tv_sec-start.tv_sec)*1000+(t2.tv_usec-start.tv_usec)/1000);
     }
 }
 
 int
-Write2File_Module::init()
+Final_Write2File_Module::init()
 {
     return 0;
 }

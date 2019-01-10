@@ -5,6 +5,7 @@
 #include "Global.h"
 
 #include <algorithm>
+#include "pdqsort.h"
 
 Sort_Module::Sort_Module(int threads)
     :threads_num_(threads)
@@ -47,7 +48,7 @@ Sort_Module::svc()
             for (i = 0; i < 26; ++i)
             {
                 if (c_data->request_->str_list_[idx][idx1][i].size() > 1)
-                    sort(c_data->request_->str_list_[idx][idx1][i].begin(), c_data->request_->str_list_[idx][idx1][i].end(), compare_char);
+                    pdqsort(c_data->request_->str_list_[idx][idx1][i].begin(), c_data->request_->str_list_[idx][idx1][i].end(), compare_char);
             }
         }
         put_next(msg);
