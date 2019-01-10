@@ -46,6 +46,7 @@ Wait_Split_Module::svc()
         data->request_->end_ = data->request_->end_ < data->end_ ? data->end_ : data->request_->end_;
         data->request_->lock_.unlock();
         end = data->request_->end_;
+        SP_DEBUG("count(%d),size_split_buf(%d),end(%d),length(%d)\n", data->request_->count_,data->request_->size_split_buf,end,data->request_->length_);
         if (data->request_->count_ == data->request_->size_split_buf && end == data->request_->length_)
         {
             data->request_->lock_.lock();

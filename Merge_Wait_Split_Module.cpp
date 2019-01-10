@@ -5,6 +5,7 @@
 #include "Global.h"
 
 #include <utility>
+#include <tuple>
 
 extern SP_Module * write2buf_module;
 
@@ -48,10 +49,11 @@ Merge_Wait_Split_Module::svc()
         data->request_->lock_.unlock();
         end = end < data->idx_.back().first ? data->idx_.back().first : end;
         SP_LOGI("count=%d,size_split_buf=%d\n", data->request_->count_, data->request_->size_split_buf);
-        if (data->request_->count_ == data->request_->size_split_buf)
+        if (data->request_->count_ == data->request_->size_split_buf && data->request_->is_read_end_)
         {
             data->request_->lock_.lock();
             data->request_->count_ = 0;
+            data->request_->is_read_end_ = false;
             data->request_->lock_.unlock();
             uint8_t idx = 26;
             uint8_t idx1 = 26;
@@ -63,8 +65,7 @@ Merge_Wait_Split_Module::svc()
                     {
                         if (data->request_->vec_char_size_[i][j][k] != 0)
                         {
-                            if (i > data->request_->vec_last_idx_[k].first 
-                                || (i == data->request_->vec_last_idx_[k].first && j > data->request_->vec_last_idx_[k].second))
+                            if (std::tie(i, j) > std::tie(data->request_->vec_last_idx_[k].first, data->request_->vec_last_idx_[k].second))
                             {
                                 data->request_->vec_last_idx_[k] = std::make_pair(i, j);
                             }
@@ -74,18 +75,18 @@ Merge_Wait_Split_Module::svc()
             }
             for (int k = 0; k < data->request_->vec_last_idx_.size(); ++k)
             {
-                if (idx > data->request_->vec_last_idx_[k].first
-                    || (idx == data->request_->vec_last_idx_[k].first && idx1 > data->request_->vec_last_idx_[k].second))
+                if (std::tie(idx, idx1) > std::tie(data->request_->vec_last_idx_[k].first, data->request_->vec_last_idx_[k].second))
                 {
                     idx = data->request_->vec_last_idx_[k].first;
                     idx1 = data->request_->vec_last_idx_[k].second;
                 }
             }
+            SP_LOGI("(%d,%d)\n", idx,idx1);
             data->request_->last_idx_[0] = idx;
             data->request_->last_idx_[1] = idx1;
             for (uint8_t i = 0; i <= idx; ++i)
             {
-                for (uint8_t j = 0; j <= idx1; ++j)
+                for (uint8_t j = 0; j < (i==idx?idx1:26); ++j)
                 {
                     for (uint8_t k = 0; k < 26; ++k)
                     {

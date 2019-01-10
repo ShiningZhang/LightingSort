@@ -24,6 +24,7 @@
 #include "Merge_ReadFile_Module.h"
 #include "Merge_Split_Module.h"
 #include "Merge_Wait_Split_Module.h"
+#include "Merge_Sort_Module.h"
 #include "Merge_Write2Buf_Module.h"
 #include "Merge_Write2File_Module.h"
 
@@ -307,11 +308,12 @@ int main(int argc, char *argv[])
         SP_Module * merge_modules[6];
         SP_NEW_RETURN(s_instance_mergestream, SP_Stream, -1);
         SP_NEW_RETURN(merge_modules[0], Merge_ReadFile_Module(1), -1);
-        SP_NEW_RETURN(merge_modules[1], Merge_Split_Module(1), -1);
+        SP_NEW_RETURN(merge_modules[1], Merge_Split_Module(6), -1);
         SP_NEW_RETURN(merge_modules[2], Merge_Wait_Split_Module(1), -1);
-        SP_NEW_RETURN(merge_modules[3], Merge_Write2Buf_Module(6), -1);
-        SP_NEW_RETURN(merge_modules[4], Merge_Write2File_Module(1), -1);
-        for (i = 4; i >= 0; --i)
+        SP_NEW_RETURN(merge_modules[3], Merge_Sort_Module(6), -1);
+        SP_NEW_RETURN(merge_modules[4], Merge_Write2Buf_Module(6), -1);
+        SP_NEW_RETURN(merge_modules[5], Merge_Write2File_Module(1), -1);
+        for (i = 5; i >= 0; --i)
         {
             s_instance_mergestream->push_module(merge_modules[i]);
         }
@@ -328,10 +330,13 @@ int main(int argc, char *argv[])
         std::vector<size_t> alive_fp(split_size, 0);
         for(i = 0; i < split_size; ++i)
             alive_fp[i] = i;
-        while(merge_data->split_size_ != 1)
+        SP_LOGI("split_size_=%d\n", merge_data->split_size_);
+        while(merge_data->split_size_ > 1)
         {
+            SP_LOGI("in\n");
             merge_data->size_split_buf = 0;
             merge_data->count_ = 0;
+            memset(merge_data->send_str_list_, 0, sizeof(merge_data->send_str_list_));
             if (s_instance_mergestream->put(msg) == -1)
             {
                 SP_LOGE("processing : Put Msg failed!\n");
@@ -353,6 +358,7 @@ int main(int argc, char *argv[])
                     {
                         buf = merge_data->vec_buf_[alive_fp[i]][k];
                         buf->wt_pos = 0;
+                        buf->rd_pos = 0;
                         SP_NEW_RETURN(buf_msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
                         mem_pool_rd[alive_fp[i]]->enqueue(buf_msg);
                     }
@@ -370,7 +376,7 @@ int main(int argc, char *argv[])
                         mem_pool_rd[alive_fp[i]]->dequeue(buf_msg);
                         if (offset == alive_fp[i])
                             offset = (offset + 1) % alive_fp.size();
-                        mem_pool_rd[offset]->dequeue(buf_msg);
+                        mem_pool_rd[offset]->enqueue(buf_msg);
                         offset = (offset + 1) % alive_fp.size();
                     }
                     alive_fp.erase(alive_fp.begin()+i);
@@ -412,9 +418,12 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        if (s_instance_finalstream->get(next_msg) == -1)
+        if (merge_data->count_ != 0)
         {
-            SP_LOGE("processing : Get Msg failed!\n");
+            if (s_instance_finalstream->get(next_msg) == -1)
+            {
+                SP_LOGE("processing : Get Msg failed!\n");
+            }
         }
         size_t line_size = merge_data->vec_mid_fp_[alive_fp[0]].size_ - merge_data->vec_mid_fp_[alive_fp[0]].wt_pos;
         size_t result = fread (buffer,1,line_size,merge_data->vec_mid_fp_[alive_fp[0]].fp_);

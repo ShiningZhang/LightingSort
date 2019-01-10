@@ -76,6 +76,7 @@ public:
     int split_size_;
     std::vector<Last_Ptr> vec_last_ptr_;
     uint8_t last_idx_[2];
+    bool is_read_end_;
 };
 
 class CRequest : public SP_Data_Block

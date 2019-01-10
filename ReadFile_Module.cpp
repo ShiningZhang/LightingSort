@@ -44,7 +44,7 @@ ReadFile_Module::svc()
         begin = data->begin_;
         end = data->end_;
         length = data->length_;
-        size_t line_size = length / 12;
+        size_t line_size = length < 1024*12 ? length : length / 12;
         buf = data->buffer_;
         wt_begin = begin;
         while (wt_begin < length)
@@ -61,7 +61,7 @@ ReadFile_Module::svc()
                 continue;
             }
             end = wt_begin + line_size;
-            SP_DEBUG("wt_begin(%zu),line_size(%zu),length(%zu)\n", wt_begin,line_size,length);
+            SP_LOGI("wt_begin(%zu),line_size(%zu),length(%zu), end(%zu), data->end(%zu)\n", wt_begin,line_size,length,end,data->end_);
             wt_begin = wt_begin + line_size;
             SP_NEW(c_data, CRequest(data));
             c_data->buffer_ = data->buffer_;
@@ -69,20 +69,21 @@ ReadFile_Module::svc()
             {
                 if (end != length)
                 {
-                    while(*(c_data->buffer_ + end) != '\n')
-                        --end;
-                    ++end;
+                    while(end != 0 && *(c_data->buffer_ + --end) != '\n');
+                    if (end != 0)
+                        ++end;
                 } else
                 {
-                    while(*(c_data->buffer_ + --end) != '\n');
-                    ++end;
+                    while(end != 0 && *(c_data->buffer_ + --end) != '\n');
+                    if (end != 0)
+                        ++end;
                     fseek (data->fp_in_, -(length - end), SEEK_CUR);
                     data->length_ = end;
                 }
             }
             c_data->begin_ = begin;
             c_data->end_ = end;
-            SP_DEBUG("begin(%zu),end(%zu)\n",begin,end);
+            SP_LOGI("begin(%zu),end(%zu)\n",begin,end);
             begin = end;
             SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)c_data));
             ++data->size_split_buf;

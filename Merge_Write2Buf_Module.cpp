@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <tuple>
 
 Merge_Write2Buf_Module::Merge_Write2Buf_Module(int threads)
     :threads_num_(threads)
@@ -41,6 +42,7 @@ Merge_Write2Buf_Module::svc()
     size_t i, j, k;
     size_t wt_length;
     bool is_loop = true;
+    char * last_ptr[32];
     for (SP_Message_Block_Base *msg = 0; get(msg) != -1;)
     {
         timeval t2,start;
@@ -50,6 +52,7 @@ Merge_Write2Buf_Module::svc()
         idx1 = c_data->idx_[0].second;
         is_loop = true;
         data = c_data->request_;
+        memset(last_ptr, 0, sizeof(last_ptr));
         if (!mem_pool_wt.is_empty())
         {
             mem_pool_wt.dequeue(msg_mem_pool);
@@ -76,6 +79,7 @@ Merge_Write2Buf_Module::svc()
                 *(buf->ptr + buf->wt_pos++) = 'a' + idx1;
                 *(buf->ptr + buf->wt_pos++) = '\n';
             }
+            data->double_str_count_[idx][idx1] = 0;
             for (i = 0; i < 26 && is_loop; ++i)
             {
                 if (data->str_list_[idx][idx1][i].empty())
@@ -104,15 +108,10 @@ Merge_Write2Buf_Module::svc()
                     memcpy(buf->ptr + buf->wt_pos, data->str_list_[idx][idx1][i][j].first - 3, wt_length);
                     buf->wt_pos += wt_length;
                     --data->vec_char_size_[idx][idx1][data->str_list_[idx][idx1][i][j].second];
-                    if ((idx<<8|idx1) > (data->vec_last_ptr_[data->str_list_[idx][idx1][i][j].second].i<<8|data->vec_last_ptr_[data->str_list_[idx][idx1][i][j].second].j))
-                    {
-                        data->vec_last_ptr_[data->str_list_[idx][idx1][i][j].second].i=idx;
-                        data->vec_last_ptr_[data->str_list_[idx][idx1][i][j].second].j=idx1;
-                        data->vec_last_ptr_[data->str_list_[idx][idx1][i][j].second].ptr = data->str_list_[idx][idx1][i][j].first;
-                    }
+                    last_ptr[data->str_list_[idx][idx1][i][j].second] = data->str_list_[idx][idx1][i][j].first;
                     if (data->vec_char_size_[idx][idx1][data->str_list_[idx][idx1][i][j].second] == 0)
                     {
-                        if (data->vec_last_idx_[data->str_list_[idx][idx1][i][j].second] == std::pair<uint8_t, uint8_t>(idx,idx1))
+                        if (data->last_idx_[0] == idx && data->last_idx_[1] == idx1)
                         {
                             is_loop = false;
                             break;
@@ -125,10 +124,31 @@ Merge_Write2Buf_Module::svc()
                                                         data->str_list_[idx][idx1][i].begin() + j +1);
                 } else
                     data->str_list_[idx][idx1][i].clear();
+                if (data->str_list_[idx][idx1][i].size()!= 0)
+                {
+                    SP_LOGI("(%d,%d,%d;size(%d)\n", idx,idx1,i,data->str_list_[idx][idx1][i].size());
+                    for(int k=0;k<2;++k)
+                        SP_LOGI("(%d,%d,%d)(%d)size(%d)\n",idx,idx1,i,k,data->vec_char_size_[idx][idx1][k]);
+                }
             }
         }
         c_data->vec_buf_wt_.push_back(buf);
-        printf("put buf size(%d) idx(%d,%d)\n",c_data->vec_buf_wt_.size(),idx,idx1);
+        for (k = 0; k < data->vec_last_idx_.size(); ++k)
+        {
+            data->lock_.lock();
+            if (last_ptr[k] != NULL && std::tie(idx,idx1) > std::tie(data->vec_last_ptr_[k].i, data->vec_last_ptr_[k].j))
+            {
+                data->vec_last_ptr_[k].i = idx;
+                data->vec_last_ptr_[k].j = idx1;
+                data->vec_last_ptr_[k].ptr = last_ptr[k];
+            }
+            data->lock_.unlock();
+        }
+        if (i!=26)
+        {
+            SP_LOGI("put buf (%d,%d,%d)\n", idx,idx1,i);
+        }
+        SP_DEBUG("put buf size(%d) idx(%d,%d)\n",c_data->vec_buf_wt_.size(),idx,idx1);
         put_next(msg);
         gettimeofday(&t2,0);
         SP_DEBUG("Merge_Write2Buf_Module=%ldms.\n", (t2.tv_sec-start.tv_sec)*1000+(t2.tv_usec-start.tv_usec)/1000);

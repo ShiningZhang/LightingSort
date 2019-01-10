@@ -14,7 +14,7 @@
 #define BUFFER_ELEMENT_COUNT 1024
 #define STR_LIST_SIZE 1024 * 1024
 
-const static unsigned long long MAX_IN_SIZE = 1024*1024*1024;
+const static unsigned long long MAX_IN_SIZE = 512 * 1024;
 bool compare_char(const char *e1, const char *e2);
 bool compare_pair(const std::pair<char *, uint8_t> &e1, const std::pair<char *, uint8_t> &e2);
 

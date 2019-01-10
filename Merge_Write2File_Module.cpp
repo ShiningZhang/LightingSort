@@ -103,6 +103,7 @@ Merge_Write2File_Module::svc()
                 else
                 {
                     buf->wt_pos = 0;
+                    buf->rd_pos = 0;
                     SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)buf));
                     mem_pool_wt.enqueue(msg);
                 }
@@ -116,15 +117,16 @@ Merge_Write2File_Module::svc()
                 offset1 = 0;
             }
             //++offset;
+            SP_DEBUG("write (%d,%d)\n", offset,offset1);
             SP_DES(c_data);
         }
         if (offset == 26)
         {
             offset = 0;
             offset1 = 0;
-            SP_DEBUG("write_count(%zu)\n",write_count);
-            SP_DEBUG("single_count(%zu)\n",single_count);
-            SP_DEBUG("single_write_count(%zu)\n",single_write_count);
+            SP_LOGI("write_count(%zu)\n",write_count);
+            SP_LOGI("single_count(%zu)\n",single_count);
+            SP_LOGI("single_write_count(%zu)\n",single_write_count);
             SP_NEW(msg, SP_Message_Block_Base(data));
             put_next(msg);
         }

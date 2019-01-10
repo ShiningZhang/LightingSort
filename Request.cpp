@@ -35,6 +35,7 @@ Merge_Request::Merge_Request()
     ,count_(0)
     ,size_split_buf(0)
     ,split_size_(0)
+    ,is_read_end_(false)
 {
     memset(single_str_count_, 0, sizeof(single_str_count_));
     memset(double_str_count_, 0, sizeof(double_str_count_));

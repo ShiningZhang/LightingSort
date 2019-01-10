@@ -64,14 +64,17 @@ Merge_ReadFile_Module::svc()
                 size_t result = fread (buf_element->ptr,1,line_size,data->vec_mid_fp_[i].fp_);
                 buf_element->wt_pos = line_size;
                 end = buf_element->wt_pos;
-                while(*(buf_element->ptr+ --end)!= '\n');
-                ++end;
+                SP_LOGI("end(%d)\n", end);
+                while(end!=0&&*(buf_element->ptr+ --end)!= '\n');
+                if (end != 0)
+                    ++end;
                 data->vec_mid_fp_[i].wt_pos += line_size;
                 data->vec_mid_fp_[i].wt_pos -= buf_element->wt_pos - end;
                 fseek (data->vec_mid_fp_[i].fp_, -(buf_element->wt_pos - end), SEEK_CUR);
                 buf_element->wt_pos = end;
                 data->vec_buf_[i].emplace_back(buf_element);
                 count++;
+                SP_LOGI("count(%d),end(%d),wt_pos(%zu),size(%zu)\n",count,end,data->vec_mid_fp_[i].wt_pos,data->vec_mid_fp_[i].size_);
                 if (data->vec_mid_fp_[i].wt_pos == data->vec_mid_fp_[i].size_)
                     break;
                 if (count == inline_size)
@@ -79,7 +82,7 @@ Merge_ReadFile_Module::svc()
                     SP_NEW(c_data, Merge_CRequest(data));
                     for(int j =  data->vec_buf_[i].size() - count; j < data->vec_buf_[i].size(); ++j)
                         c_data->idx_.emplace_back(std::make_pair(i, j));
-                    SP_LOGI("count=%d,size=%d\n",count,c_data->idx_.size());
+                    SP_LOGI("i=%d,count=%d,size=%d\n",i,count,c_data->idx_.size());
                     SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)c_data));
                     ++data->size_split_buf;
                     put_next(msg);
@@ -97,13 +100,14 @@ Merge_ReadFile_Module::svc()
                 SP_NEW(c_data, Merge_CRequest(data));
                 for(int j =  data->vec_buf_[i].size() - count; j < data->vec_buf_[i].size(); ++j)
                     c_data->idx_.emplace_back(std::make_pair(i, j));
-                SP_LOGI("count=%d,size=%d\n",count,c_data->idx_.size());
+                SP_LOGI("i=%d,count=%d,size=%d\n",i,count,c_data->idx_.size());
                 SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)c_data));
                 ++data->size_split_buf;
                 put_next(msg);
                 count = 0;
             }
         }
+        data->is_read_end_ = true;
         gettimeofday(&t2,0);
         SP_DEBUG("Merge_ReadFile_Module=%ldms.\n", (t2.tv_sec-start.tv_sec)*1000+(t2.tv_usec-start.tv_usec)/1000);
         SP_LOGI("Merge_ReadFile_Module=%ldms.\n", (t2.tv_sec-start.tv_sec)*1000+(t2.tv_usec-start.tv_usec)/1000);
