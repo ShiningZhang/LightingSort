@@ -13,8 +13,9 @@
 #define BUFFER_ELEMENT_SIZE_SPLIT 1024 * 1024 * 16
 #define BUFFER_ELEMENT_COUNT 1024
 #define STR_LIST_SIZE 1024 * 1024
+#define BUFFER_ELEMENT_FRONT_SIZE 1024 * 256
 
-const static unsigned long long MAX_IN_SIZE = 1024 * 1024 * 1024 + 1024 * 1024 * 20;
+const static unsigned long long MAX_IN_SIZE = 1024 * 1024 * 1024;
 bool compare_char(const char *e1, const char *e2);
 bool compare_pair(const std::pair<char *, uint8_t> &e1, const std::pair<char *, uint8_t> &e2);
 
@@ -53,7 +54,7 @@ public:
 class File_Element
 {
 public:
-    File_Element(FILE * fp)
+    File_Element(FILE * fp = NULL)
         :fp_(fp)
         ,size_(0)
         ,rd_pos(0)

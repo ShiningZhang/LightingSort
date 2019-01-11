@@ -31,6 +31,12 @@
 #include "Final_Write2Buf_Module.h"
 #include "Final_Write2File_Module.h"
 
+#include "Front_ReadFile_Module.h"
+#include "Front_Split_Module.h"
+#include "Front_Wait_Split_Module.h"
+#include "Front_Write2File_Module.h"
+
+
 
 using namespace std;
 
@@ -102,7 +108,7 @@ int main(int argc, char *argv[])
     
     timeval t1,t2;
 
-    gettimeofday(&t1, NULL);
+    gettimeofday(&t1, NULL);    
 #endif
 
     fp_in = NULL;
@@ -208,7 +214,7 @@ int main(int argc, char *argv[])
     {
         buffer = (char*) malloc (sizeof(char)*MAX_IN_SIZE);
         int split_size = 0;
-        vector<File_Element> mid_file_ptr;
+        vector<vector<File_Element>> mid_file_ptr;
         unsigned long long rd_pos = 0;
 #ifdef TIME_TEST
         gettimeofday(&t2, NULL);
@@ -217,14 +223,12 @@ int main(int argc, char *argv[])
 #endif
 
         SP_NEW_RETURN(s_instance_stream, SP_Stream, -1);
-        SP_NEW_RETURN(modules[0], ReadFile_Module(1), -1);
-        SP_NEW_RETURN(modules[1], Split_Module(6), -1);
-        SP_NEW_RETURN(modules[2], Wait_Split_Module(1), -1);
-        SP_NEW_RETURN(modules[3], Sort_Module(6), -1);
-        SP_NEW_RETURN(modules[4], Write2Buf_Module(6), -1);
-        SP_NEW_RETURN(modules[5], Write2File_Module(1), -1);
+        SP_NEW_RETURN(modules[0], Front_ReadFile_Module(1), -1);
+        SP_NEW_RETURN(modules[1], Front_Split_Module(6), -1);
+        SP_NEW_RETURN(modules[2], Front_Wait_Split_Module(1), -1);
+        SP_NEW_RETURN(modules[3], Front_Write2File_Module(1), -1);
 
-        for (int i = 5; i >= 0; --i)
+        for (int i = 3; i >= 0; --i)
         {
             s_instance_stream->push_module(modules[i]);
         }
@@ -232,13 +236,14 @@ int main(int argc, char *argv[])
 
         Buffer_Element * buf;
         SP_Message_Block_Base * msg;
+        /*
         for (size_t i = 0; i < BUFFER_ELEMENT_COUNT; ++i)
         {
             SP_NEW_RETURN(buf, Buffer_Element(BUFFER_ELEMENT_SIZE), -1);
             SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
             mem_pool_wt.enqueue(msg);
         }
-
+*/
 
 #ifdef TIME_TEST
         gettimeofday(&t2, NULL);
@@ -246,18 +251,29 @@ int main(int argc, char *argv[])
         gettimeofday(&t1, NULL);
 #endif
 
-        Request * data;
-        SP_NEW_RETURN(data, Request(), -1);
+        Front_Request * data;
+        SP_NEW_RETURN(data, Front_Request(), -1);
         FILE * tmp_fp;
         char tmp_char[256];
         split_size = 0;
         SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)data), -1);
+        for (int i = 0; i < 26; ++i)
+        {
+            vector<File_Element> temp;
+            for (int j = 0; j < 26; ++j)
+            {
+                sprintf(tmp_char, "%s/%d_%d", tmp_file_name, i, j);
+                tmp_fp = fopen(tmp_char, "wb+");
+                temp.emplace_back(File_Element(tmp_fp));
+            }
+            mid_file_ptr.emplace_back(temp);
+        }
+        data->vec_mid_fp_ = mid_file_ptr;
+        data->vec_buf_.resize(26);
+        for (int i = 0; i < 26; ++i)
+            data->vec_buf_[i].resize(26);
         while (rd_pos < in_size)
         {
-            sprintf(tmp_char, "%s/%d", tmp_file_name, split_size);
-            SP_LOGI("tmp_char=%s\n", tmp_char);
-            tmp_fp = fopen(tmp_char, "wb+");
-            mid_file_ptr.emplace_back(File_Element(tmp_fp));
 
             data->size_split_buf = 0;
             data->count_ = 0;
@@ -265,7 +281,7 @@ int main(int argc, char *argv[])
             data->begin_ = 0;
             data->end_ = 0;
             data->length_ = (rd_pos + MAX_IN_SIZE < in_size) ? MAX_IN_SIZE : in_size - rd_pos;
-            data->fp_out_ = tmp_fp;
+            data->fp_out_ = NULL;
             data->fp_in_ = fp_in;
             if (s_instance_stream->put(msg) == -1)
             {
@@ -275,175 +291,34 @@ int main(int argc, char *argv[])
             {
                 SP_LOGE("processing : Get Msg failed!\n");
             }
-            mid_file_ptr[split_size].size_ = ftell(mid_file_ptr[split_size].fp_);
-            rewind (mid_file_ptr[split_size].fp_);
             rd_pos += data->length_;
             split_size++;
         }
+        unsigned long long wt_size=0;
+        size_t single_count=0;
+        size_t double_count=0;
+        for(int i=0;i<26;++i)
+        {
+            single_count +=data->single_str_count_[i];
+            for(int j =0;j<26;++j)
+            {
+                double_count+=data->double_str_count_[i][j];
+                wt_size +=data->vec_mid_fp_[i][j].size_;
+            }
+        }
+        SP_LOGI("sigle=%d,double=%d\n", single_count, double_count);
+        SP_LOGI("wt_size=%lld\n", wt_size);
         SP_DES(msg);
         SP_DES(data);
         s_instance_stream->close();
         SP_DES(s_instance_stream);
         SP_LOGI("1\n");
 
-        size_t size = MAX_IN_SIZE / mid_file_ptr.size() / 16;
-        size_t offset = 0;
-        SP_Message_Queue * q = NULL;
-        SP_Message_Block_Base * buf_msg = NULL;
-        int i, j, k;
-        int used_buf_size;
-        for(i = 0; i < mid_file_ptr.size(); ++i)
-        {
-            q = new SP_Message_Queue;
-            for (j = 0; j < 16; ++j)
-            {
-                SP_NEW_RETURN(buf, Buffer_Element(buffer + offset, size), -1);
-                SP_NEW_RETURN(buf_msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
-                q->enqueue(buf_msg);
-                offset += size;
-            }
-            mem_pool_rd.emplace_back(q);
-        }
-
-        SP_Stream * s_instance_mergestream = NULL;
-        SP_Module * merge_modules[6];
-        SP_NEW_RETURN(s_instance_mergestream, SP_Stream, -1);
-        SP_NEW_RETURN(merge_modules[0], Merge_ReadFile_Module(1), -1);
-        SP_NEW_RETURN(merge_modules[1], Merge_Split_Module(6), -1);
-        SP_NEW_RETURN(merge_modules[2], Merge_Wait_Split_Module(1), -1);
-        SP_NEW_RETURN(merge_modules[3], Merge_Sort_Module(6), -1);
-        SP_NEW_RETURN(merge_modules[4], Merge_Write2Buf_Module(6), -1);
-        SP_NEW_RETURN(merge_modules[5], Merge_Write2File_Module(1), -1);
-        for (i = 5; i >= 0; --i)
-        {
-            s_instance_mergestream->push_module(merge_modules[i]);
-        }
-        Merge_Request * merge_data;
-        SP_NEW_RETURN(merge_data, Merge_Request(), -1);
-        SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)merge_data), -1);
-        merge_data->vec_mid_fp_ = mid_file_ptr;
-        merge_data->fp_in_ = fp_in;
-        merge_data->fp_out_ = fp_out;
-        merge_data->split_size_ = split_size;
-        merge_data->vec_buf_.resize(split_size);
-        merge_data->vec_last_idx_.resize(split_size);
-        merge_data->vec_last_ptr_.resize(split_size);
-        std::vector<bool> alive_fp(split_size, true);
-        SP_LOGI("split_size_=%d\n", merge_data->split_size_);
-        while(merge_data->split_size_ > 1)
-        {
-            SP_LOGI("in\n");
-            merge_data->size_split_buf = 0;
-            merge_data->count_ = 0;
-            memset(merge_data->send_str_list_, 0, sizeof(merge_data->send_str_list_));
-            if (s_instance_mergestream->put(msg) == -1)
-            {
-                SP_LOGE("processing : Put Msg failed!\n");
-            }
-            if (s_instance_mergestream->get(msg) == -1)
-            {
-                SP_LOGE("processing : Get Msg failed!\n");
-            }
-            for (i = 0; i < alive_fp.size(); ++i)
-            {
-                used_buf_size = 0;
-                for (j = 0; j < merge_data->vec_buf_[i].size(); ++j)
-                {
-                    if (merge_data->vec_last_ptr_[i].ptr > merge_data->vec_buf_[i][j]->ptr
-                        && merge_data->vec_last_ptr_[i].ptr - merge_data->vec_buf_[i][j]->ptr 
-                        < merge_data->vec_buf_[i][j]->length)
-                    {
-                        used_buf_size = j;
-                        //SP_LOGI("i=%d,j=%d,(%d,%d)(%p)\n",i,j,merge_data->vec_last_ptr_[i].i,merge_data->vec_last_ptr_[i].j,merge_data->vec_last_ptr_[i].ptr);
-                        break;
-                    }
-                }
-                if (used_buf_size != 0)
-                {
-                    for (k = 0; k < used_buf_size; ++k)
-                    {
-                        buf = merge_data->vec_buf_[i][k];
-                        buf->wt_pos = 0;
-                        buf->rd_pos = 0;
-                        SP_NEW_RETURN(buf_msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
-                        mem_pool_rd[i]->enqueue(buf_msg);
-                    }
-                    merge_data->vec_buf_[i].erase(merge_data->vec_buf_[i].begin(),
-                                                            merge_data->vec_buf_[i].begin() + used_buf_size);
-                }
-                if (!alive_fp[i])
-                    continue;
-                if (merge_data->vec_mid_fp_[i].wt_pos == merge_data->vec_mid_fp_[i].size_)
-                {
-                    alive_fp[i] = false;
-                    merge_data->split_size_--;
-                    fclose(merge_data->vec_mid_fp_[i].fp_);
-                    merge_data->vec_last_idx_[i] = make_pair(26,26);
-                    offset = 0;
-                    if (merge_data->split_size_ > 1)
-                    {
-                        while(!mem_pool_rd[i]->is_empty())
-                        {
-                            mem_pool_rd[i]->dequeue(buf_msg);
-                            while(!alive_fp[offset])
-                                offset = (offset + 1) % alive_fp.size();
-                            mem_pool_rd[offset]->enqueue(buf_msg);
-                            offset = (offset + 1) % alive_fp.size();
-                        }
-                    }
-                }
-            }
-        }
-        SP_LOGI("out\n");
-
-        SP_Stream * s_instance_finalstream = NULL;
-        SP_Module * final_modules[3];
-        SP_NEW_RETURN(s_instance_finalstream, SP_Stream, -1);
-        SP_NEW_RETURN(final_modules[0], Merge_Sort_Module(6), -1);
-        SP_NEW_RETURN(final_modules[1], Final_Write2Buf_Module(6), -1);
-        SP_NEW_RETURN(final_modules[2], Final_Write2File_Module(1), -1);
-        for (i = 2; i >= 0; --i)
-        {
-            s_instance_finalstream->push_module(final_modules[i]);
-        }
-        merge_data->count_ = 0;
-        Merge_CRequest * next_data = NULL;
-        SP_Message_Block_Base *next_msg = NULL;
-        memset(merge_data->send_str_list_, 0, sizeof(merge_data->send_str_list_));
-        for (i = 0; i < 26; ++i)
-        {
-            for (j = 0; j < 26; ++j)
-            {
-                for (k = 0; k < 26; ++k)
-                {
-                    if (merge_data->str_list_[i][j][k].empty())
-                    {
-                        continue;
-                    }
-                    ++merge_data->count_;
-                    merge_data->send_str_list_[i][j] = true;
-                    SP_NEW_RETURN(next_data, Merge_CRequest(merge_data), -1);
-                    next_data->idx_.emplace_back(std::make_pair(i,j));
-                    SP_NEW_RETURN(next_msg, SP_Message_Block_Base((SP_Data_Block *)next_data), -1);
-                    s_instance_finalstream->put(next_msg);
-                    break;
-                }
-            }
-        }
-        if (merge_data->count_ != 0)
-        {
-            if (s_instance_finalstream->get(next_msg) == -1)
-            {
-                SP_LOGE("processing : Get Msg failed!\n");
-            }
-        }
-        size_t line_size = merge_data->vec_mid_fp_[alive_fp[0]].size_ - merge_data->vec_mid_fp_[alive_fp[0]].wt_pos;
-        size_t result = fread (buffer,1,line_size,merge_data->vec_mid_fp_[alive_fp[0]].fp_);
-        fwrite(buffer, sizeof(char), line_size, merge_data->fp_out_);
+        
 
 #ifdef TIME_TEST
         gettimeofday(&t2, NULL);
-        //SP_LOGI("cost4 =%ld.\n", (t2.tv_sec-t1.tv_sec)*1000+(t2.tv_usec-t1.tv_usec)/1000);
+        SP_LOGI("cost4 =%ld.\n", (t2.tv_sec-t1.tv_sec)*1000+(t2.tv_usec-t1.tv_usec)/1000);
         gettimeofday(&t1, NULL);
 #endif
     }
