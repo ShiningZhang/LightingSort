@@ -123,7 +123,10 @@ Merge_Write2Buf_Module::svc()
                     data->str_list_[idx][idx1][i].erase(data->str_list_[idx][idx1][i].begin(),
                                                         data->str_list_[idx][idx1][i].begin() + j +1);
                 } else
-                    data->str_list_[idx][idx1][i].clear();
+                {
+                    MERGE_TEMPLIST().swap(data->str_list_[idx][idx1][i]);
+                    //data->str_list_[idx][idx1][i].clear();
+                }
                 if (data->str_list_[idx][idx1][i].size()!= 0)
                 {
                     SP_LOGI("(%d,%d,%d;size(%d)\n", idx,idx1,i,data->str_list_[idx][idx1][i].size());
