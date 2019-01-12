@@ -16,6 +16,8 @@
 #define BUFFER_ELEMENT_FRONT_SIZE 1024 * 256
 
 const static unsigned long long MAX_IN_SIZE = 1024 * 1024 * 1024;
+const static unsigned long long MAX_FRONT_IN_SIZE = MAX_IN_SIZE;
+const static unsigned long long MAX_BACK_IN_SIZE = MAX_IN_SIZE;
 bool compare_char(const char *e1, const char *e2);
 bool compare_pair(const std::pair<char *, uint8_t> &e1, const std::pair<char *, uint8_t> &e2);
 
@@ -51,6 +53,8 @@ public:
     bool   is_del;
 };
 
+class Front_Request;
+
 class File_Element
 {
 public:
@@ -59,12 +63,14 @@ public:
         ,size_(0)
         ,rd_pos(0)
         ,wt_pos(0)
+        ,data(NULL)
         {};
     ~File_Element(){};
     FILE * fp_;
     size_t size_;
     size_t rd_pos;
     size_t wt_pos;
+    Front_Request *data;
 };
 
 typedef std::vector<char *> TEMPLIST;

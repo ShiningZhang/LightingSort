@@ -207,9 +207,9 @@ int main(int argc, char *argv[])
 
     } else
     {
-        buffer = (char*) malloc (sizeof(char)*MAX_IN_SIZE);
+        buffer = (char*) malloc (sizeof(char)*MAX_FRONT_IN_SIZE);
         int split_size = 0;
-        vector<vector<File_Element>> mid_file_ptr;
+        vector<vector<File_Element*>> mid_file_ptr;
         unsigned long long rd_pos = 0;
 #ifdef TIME_TEST
         gettimeofday(&t2, NULL);
@@ -249,12 +249,12 @@ int main(int argc, char *argv[])
         SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)data), -1);
         for (int i = 0; i < 26; ++i)
         {
-            vector<File_Element> temp;
+            vector<File_Element*> temp;
             for (int j = 0; j < 26; ++j)
             {
                 sprintf(tmp_char, "%s/%d_%d", tmp_file_name, i, j);
                 tmp_fp = fopen(tmp_char, "wb+");
-                temp.emplace_back(File_Element(tmp_fp));
+                temp.emplace_back(new File_Element(tmp_fp));
             }
             mid_file_ptr.emplace_back(temp);
         }
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
             data->buffer_ = buffer;
             data->begin_ = 0;
             data->end_ = 0;
-            data->length_ = (rd_pos + MAX_IN_SIZE < in_size) ? MAX_IN_SIZE : in_size - rd_pos;
+            data->length_ = (rd_pos + MAX_FRONT_IN_SIZE < in_size) ? MAX_FRONT_IN_SIZE : in_size - rd_pos;
             data->fp_out_ = NULL;
             data->fp_in_ = fp_in;
             data->is_read_end_ = false;
@@ -284,12 +284,66 @@ int main(int argc, char *argv[])
             rd_pos += data->length_;
             split_size++;
         }
+        SP_DES(msg);
         for(int i=0;i<26;++i)
         {
             for(int j =0;j<26;++j)
             {
-                data->vec_mid_fp_[i][j].size_ = ftell(data->vec_mid_fp_[i][j].fp_);
-                rewind (data->vec_mid_fp_[i][j].fp_);
+                data->vec_mid_fp_[i][j]->size_ = ftell(data->vec_mid_fp_[i][j]->fp_);
+                rewind (data->vec_mid_fp_[i][j]->fp_);
+                //TODO MAX_BACK_IN_SIZE
+                if (data->vec_mid_fp_[i][j]->size_ > MAX_BACK_IN_SIZE)
+                {
+                    Front_Request * front_data = new Front_Request();
+                    data->vec_mid_fp_[i][j]->data = front_data;
+                    for (int m = 0; m < 26; ++m)
+                    {
+                        vector<File_Element*> temp;
+                        for (int n = 0; n < 26; ++n)
+                        {
+                            sprintf(tmp_char, "%s/%d_%d_%d_%d", tmp_file_name, i, j, m, n);
+                            tmp_fp = fopen(tmp_char, "wb+");
+                            temp.emplace_back(new File_Element(tmp_fp));
+                        }
+                        front_data->vec_mid_fp_.emplace_back(temp);
+                    }
+                    front_data->vec_buf_.resize(26);
+                    for (int m = 0; m < 26; ++m)
+                        front_data->vec_buf_[m].resize(26);
+                    unsigned long long tmp_rd_pos = 0;
+                    unsigned long long tmp_in_size = data->vec_mid_fp_[i][j]->size_;
+                    SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)front_data), -1);
+                    while (tmp_rd_pos < tmp_in_size)
+                    {
+                        front_data->size_split_buf = 0;
+                        front_data->count_ = 0;
+                        front_data->buffer_ = buffer;
+                        front_data->begin_ = 0;
+                        front_data->end_ = 0;
+                        front_data->length_ = (tmp_rd_pos + MAX_FRONT_IN_SIZE < tmp_in_size) ? MAX_FRONT_IN_SIZE : tmp_in_size - tmp_rd_pos;
+                        front_data->fp_out_ = NULL;
+                        front_data->fp_in_ = data->vec_mid_fp_[i][j]->fp_;
+                        front_data->is_read_end_ = false;
+                        if (s_instance_stream->put(msg) == -1)
+                        {
+                            SP_LOGE("processing : Put Msg failed!\n");
+                        }
+                        if (s_instance_stream->get(msg) == -1)
+                        {
+                            SP_LOGE("processing : Get Msg failed!\n");
+                        }
+                        tmp_rd_pos += front_data->length_;
+                    }
+                    SP_DES(msg);
+                    for (int m = 0; m < 26; ++m)
+                    {
+                        for (int n = 0; n < 26; ++n)
+                        {
+                            front_data->vec_mid_fp_[m][n]->size_ = ftell(front_data->vec_mid_fp_[m][n]->fp_);
+                            rewind (front_data->vec_mid_fp_[m][n]->fp_);
+                        }
+                    }
+                }
             }
         }
         unsigned long long wt_size=0;
@@ -301,12 +355,11 @@ int main(int argc, char *argv[])
             for(int j =0;j<26;++j)
             {
                 double_count+=data->double_str_count_[i][j];
-                wt_size +=data->vec_mid_fp_[i][j].size_;
+                wt_size +=data->vec_mid_fp_[i][j]->size_;
             }
         }
         SP_LOGI("sigle=%d,double=%d\n", single_count, double_count);
         SP_LOGI("wt_size=%lld\n", wt_size);
-        SP_DES(msg);
         //SP_DES(data);
         //s_instance_stream->close();
         //SP_DES(s_instance_stream);
@@ -316,6 +369,11 @@ int main(int argc, char *argv[])
         gettimeofday(&t1, NULL);
 #endif
 
+        if (MAX_FRONT_IN_SIZE != MAX_BACK_IN_SIZE)
+        {
+            free(buffer);
+            buffer = (char*) malloc (sizeof(char)*MAX_BACK_IN_SIZE);
+        }
 
         SP_Stream *back_stream = NULL;
         SP_Module *back_modules[6];
@@ -369,7 +427,7 @@ int main(int argc, char *argv[])
                     temp[k++] = 'a'+j;
                     temp[k++] = '\n';
                     int size = k;
-                    buf = new Buffer_Element(data->single_str_count_[i] * size);
+                    buf = new Buffer_Element(data->double_str_count_[i][j] * size);
                     for (k = 0; k < data->double_str_count_[i][j]; ++k)
                     {
                         memcpy(buf->ptr + buf->wt_pos, temp, size);
@@ -378,31 +436,111 @@ int main(int argc, char *argv[])
                     back_data->head_buf_.emplace_back(buf);
                     data->double_str_count_[i][j] = 0;
                 }
-                if (data->vec_mid_fp_[i][j].size_ == 0)
+                if (data->vec_mid_fp_[i][j]->size_ == 0)
                     continue;
-                back_data->idx_.clear();
-                back_data->idx_.emplace_back(i);
-                back_data->idx_.emplace_back(j);
-                back_data->size_split_buf = 0;
-                back_data->count_ = 0;
-                back_data->buffer_ = buffer;
-                back_data->begin_ = 0;
-                back_data->end_ = 0;
-                back_data->length_ = data->vec_mid_fp_[i][j].size_;
-                back_data->fp_out_ = fp_out;
-                back_data->fp_in_ = data->vec_mid_fp_[i][j].fp_;
-                back_data->is_read_end_ = false;
-                back_data->head_str_size_ = 2;
-                back_data->head_str_[0] = 'a' + i;
-                back_data->head_str_[1] = 'a' + j;
-                SP_DEBUG("(%d,%d)fp(%p),size=%d\n", i,j,data->vec_mid_fp_[i][j].fp_,data->vec_mid_fp_[i][j].size_);
-                if (back_stream->put(msg) == -1)
+                if (data->vec_mid_fp_[i][j]->size_ < MAX_BACK_IN_SIZE)
                 {
-                    SP_LOGE("processing : Put Msg failed!\n");
-                }
-                if (back_stream->get(msg) == -1)
+                    back_data->idx_.clear();
+                    back_data->idx_.emplace_back(i);
+                    back_data->idx_.emplace_back(j);
+                    back_data->size_split_buf = 0;
+                    back_data->count_ = 0;
+                    back_data->buffer_ = buffer;
+                    back_data->begin_ = 0;
+                    back_data->end_ = 0;
+                    back_data->length_ = data->vec_mid_fp_[i][j]->size_;
+                    back_data->fp_out_ = fp_out;
+                    back_data->fp_in_ = data->vec_mid_fp_[i][j]->fp_;
+                    back_data->is_read_end_ = false;
+                    back_data->head_str_size_ = 2;
+                    back_data->head_str_[0] = 'a' + i;
+                    back_data->head_str_[1] = 'a' + j;
+                    SP_DEBUG("(%d,%d)fp(%p),size=%d\n", i,j,data->vec_mid_fp_[i][j]->fp_,data->vec_mid_fp_[i][j]->size_);
+                    if (back_stream->put(msg) == -1)
+                    {
+                        SP_LOGE("processing : Put Msg failed!\n");
+                    }
+                    if (back_stream->get(msg) == -1)
+                    {
+                        SP_LOGE("processing : Get Msg failed!\n");
+                    }
+                } else
                 {
-                    SP_LOGE("processing : Get Msg failed!\n");
+                    SP_LOGI("(%d,%d)Large file.\n", i,j);
+                    Front_Request *front_data = data->vec_mid_fp_[i][j]->data;
+                    for (int m = 0; m < 26; ++m)
+                    {
+                        for (int n = 0; n < 26; ++n)
+                        {
+                            if (n == 0 && front_data->single_str_count_[m] != 0)
+                            {
+                                char temp[128];
+                                int k = 0;
+                                temp[k++] = 'a'+i;
+                                temp[k++] = 'a'+j;
+                                temp[k++] = 'a'+m;
+                                temp[k++] = '\n';
+                                int size = k;
+                                buf = new Buffer_Element(front_data->single_str_count_[m] * size);
+                                for (k = 0; k < front_data->single_str_count_[m]; ++k)
+                                {
+                                    memcpy(buf->ptr + buf->wt_pos, temp, size);
+                                    buf->wt_pos += size;
+                                }
+                                back_data->head_buf_.emplace_back(buf);
+                                front_data->single_str_count_[m] = 0;
+                            }
+                            if (front_data->double_str_count_[m][n] != 0)
+                            {
+                                char temp[128];
+                                int k = 0;
+                                temp[k++] = 'a'+i;
+                                temp[k++] = 'a'+j;
+                                temp[k++] = 'a'+m;
+                                temp[k++] = 'a'+n;
+                                temp[k++] = '\n';
+                                int size = k;
+                                buf = new Buffer_Element(front_data->double_str_count_[m][n] * size);
+                                for (k = 0; k < front_data->double_str_count_[m][n]; ++k)
+                                {
+                                    memcpy(buf->ptr + buf->wt_pos, temp, size);
+                                    buf->wt_pos += size;
+                                }
+                                back_data->head_buf_.emplace_back(buf);
+                                front_data->double_str_count_[m][n] = 0;
+                            }
+                            if (front_data->vec_mid_fp_[m][n]->size_ == 0)
+                                continue;
+                            back_data->idx_.clear();
+                            back_data->idx_.emplace_back(i);
+                            back_data->idx_.emplace_back(j);
+                            back_data->idx_.emplace_back(m);
+                            back_data->idx_.emplace_back(n);
+                            back_data->size_split_buf = 0;
+                            back_data->count_ = 0;
+                            back_data->buffer_ = buffer;
+                            back_data->begin_ = 0;
+                            back_data->end_ = 0;
+                            back_data->length_ = front_data->vec_mid_fp_[m][n]->size_;
+                            back_data->fp_out_ = fp_out;
+                            back_data->fp_in_ = front_data->vec_mid_fp_[m][n]->fp_;
+                            back_data->is_read_end_ = false;
+                            back_data->head_str_size_ = 4;
+                            back_data->head_str_[0] = 'a' + i;
+                            back_data->head_str_[1] = 'a' + j;
+                            back_data->head_str_[2] = 'a' + m;
+                            back_data->head_str_[3] = 'a' + n;
+                            SP_LOGI("(%d,%d,%d,%d)fp(%p),size=%d\n", i,j,m,n,front_data->vec_mid_fp_[m][n]->fp_,front_data->vec_mid_fp_[m][n]->size_);
+                            if (back_stream->put(msg) == -1)
+                            {
+                                SP_LOGE("processing : Put Msg failed!\n");
+                            }
+                            if (back_stream->get(msg) == -1)
+                            {
+                                SP_LOGE("processing : Get Msg failed!\n");
+                            }
+                        }
+                    }
                 }
             }
         }

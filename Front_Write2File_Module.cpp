@@ -72,8 +72,8 @@ Front_Write2File_Module::svc()
                 {
                     buf = data->vec_buf_[offset][j][i];
                     if (buf->wt_pos != 0)
-                        write_count += fwrite(buf->ptr, sizeof(char), buf->wt_pos, data->vec_mid_fp_[offset][j].fp_);
-                    data->vec_mid_fp_[offset][j].size_ += buf->wt_pos;
+                        write_count += fwrite(buf->ptr, sizeof(char), buf->wt_pos, data->vec_mid_fp_[offset][j]->fp_);
+                    data->vec_mid_fp_[offset][j]->size_ += buf->wt_pos;
                     SP_DEBUG("(%d,%d)i=%d,buf(%p),wt_pos(%d)\n",offset,j,i,buf,buf->wt_pos);
                     SP_DES(buf);
                 }

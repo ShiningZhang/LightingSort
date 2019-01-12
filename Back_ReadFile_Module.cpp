@@ -48,6 +48,11 @@ Back_ReadFile_Module::svc()
         size_t line_size = length < 1024*6 ? length : ceil((double)length / 6);
         buf = data->buffer_;
         wt_begin = begin;
+        if (length > MAX_BACK_IN_SIZE)
+        {
+            SP_LOGE("Read file failed! File size(%lld) > buf(%lld)\n", length, MAX_BACK_IN_SIZE);
+            exit(1);
+        }
         while (wt_begin < length)
         {
             if (wt_begin + line_size > length)
@@ -57,10 +62,16 @@ Back_ReadFile_Module::svc()
             size_t result = fread (buf + wt_begin,1,line_size,data->fp_in_);
             if (result != line_size)
             {
-                SP_LOGE("Read file failed!(%d,%d)line_size=%d,length=%d,wt_begin=%d\n",
-                    data->idx_[0], data->idx_[1],line_size,length,wt_begin);
+                if (data->idx_.size() == 2)
+                    SP_LOGE("Back_ReadFile_Module:Read file failed!(%d,%d)line_size=%d,length=%d,wt_begin=%d\n",
+                        data->idx_[0], data->idx_[1],line_size,length,wt_begin);
+                else if (data->idx_.size() == 4)
+                    SP_LOGE("Back_ReadFile_Module:Read file failed!(%d,%d,%d,%d)line_size=%d,length=%d,wt_begin=%d\n",
+                        data->idx_[0], data->idx_[1],data->idx_[2], data->idx_[3],line_size,length,wt_begin);
+                else
+                    SP_LOGE("Back_ReadFile_Module:Read file failed! idx.size=%d\n", data->idx_.size());
                 //fseek (data->fp_in_, -result, SEEK_CUR);
-                continue;
+                exit(1);
             }
             end = wt_begin + line_size;
             SP_DEBUG("wt_begin(%zu),line_size(%zu),length(%zu), end(%zu), data->end(%zu)\n", wt_begin,line_size,length,end,data->end_);

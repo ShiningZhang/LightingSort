@@ -85,7 +85,7 @@ public:
     Front_CRequest* recv_str_list_[26][26];
     FILE *fp_out_;
     FILE *fp_in_;
-    vector<vector<File_Element>> vec_mid_fp_;
+    vector<vector<File_Element*>> vec_mid_fp_;
     vector<vector<vector<Buffer_Element*>>> vec_buf_;
     int split_size_;
     bool is_read_end_;

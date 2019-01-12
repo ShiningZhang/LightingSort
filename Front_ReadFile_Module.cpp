@@ -58,8 +58,10 @@ Front_ReadFile_Module::svc()
             if (result != line_size)
             {
                 fputs("Read file failed!\n", stderr);
-                fseek (data->fp_in_, -result, SEEK_CUR);
-                continue;
+                //fseek (data->fp_in_, -result, SEEK_CUR);
+                SP_LOGE("result=%d,line_size=%d,length=%d,wt_begin=%d\n",
+                            result, line_size,length,wt_begin);
+                exit(1);
             }
             end = wt_begin + line_size;
             SP_DEBUG("wt_begin(%zu),line_size(%zu),length(%zu), end(%zu), data->end(%zu)\n", wt_begin,line_size,length,end,data->end_);
