@@ -4,11 +4,11 @@
 
 #include <mutex>
 
-class Merge_ReadFile_Module : public SP_Module
+class Back_Wait_Split_Module : public SP_Module
 {
 public:
-    Merge_ReadFile_Module(int threads = 1);
-    virtual ~Merge_ReadFile_Module();
+    Back_Wait_Split_Module(int threads = 1);
+    virtual ~Back_Wait_Split_Module();
     virtual int open();
     virtual void svc();
     virtual int init();

@@ -82,9 +82,9 @@ Front_Split_Module::svc()
                     //offset2 = buf[begin+2]-'a';
                     if ((data->vec_buf_wt_[offset][offset1]->wt_pos + 130) > data->vec_buf_wt_[offset][offset1]->length)
                     {
-                        request->lock_str_list_[offset][offset1][0].lock();
+                        request->lock_str_list_[offset][offset1].lock();
                         request->vec_buf_[offset][offset1].emplace_back(data->vec_buf_wt_[offset][offset1]);
-                        request->lock_str_list_[offset][offset1][0].unlock();
+                        request->lock_str_list_[offset][offset1].unlock();
                         data->vec_buf_wt_[offset][offset1] = new Buffer_Element(BUFFER_ELEMENT_FRONT_SIZE);
                     }
                     memcpy(data->vec_buf_wt_[offset][offset1]->ptr + data->vec_buf_wt_[offset][offset1]->wt_pos,
@@ -100,9 +100,9 @@ Front_Split_Module::svc()
             {
                 if (data->vec_buf_wt_[i][j]->wt_pos != 0)
                 {
-                    request->lock_str_list_[i][j][0].lock();
+                    request->lock_str_list_[i][j].lock();
                     request->vec_buf_[i][j].emplace_back(data->vec_buf_wt_[i][j]);
-                    request->lock_str_list_[i][j][0].unlock();
+                    request->lock_str_list_[i][j].unlock();
                 } else
                 {
                     SP_DES(data->vec_buf_wt_[i][j]);

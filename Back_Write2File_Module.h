@@ -4,11 +4,11 @@
 
 #include <mutex>
 
-class Final_Write2Buf_Module : public SP_Module
+class Back_Write2File_Module : public SP_Module
 {
 public:
-    Final_Write2Buf_Module(int threads = 1);
-    virtual ~Final_Write2Buf_Module();
+    Back_Write2File_Module(int threads = 1);
+    virtual ~Back_Write2File_Module();
     virtual int open();
     virtual void svc();
     virtual int init();
