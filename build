@@ -1,8 +1,4 @@
 #!/bin/bash
 #g++ -std=gnu++11 -g -O2 -pthread -march=corei7-avx -Wall -Werror -o sort_str main.cpp
 
-mkdir -p build_out
-cd build_out
-cmake ..
-sleep 3
-make
+g++ -std=gnu++11 -g -O2 -pthread -march=corei7-avx -o sort_str *.cpp SP/*.cpp -ISP
