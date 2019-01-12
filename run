@@ -3,4 +3,5 @@ SRC=$1
 DST=$2
 TMPDIR=$3
 #LC_ALL=C sort -S 4G -T "$TMPDIR" -o "$DST" "$SRC"
+rm -rf $TMPDIR/*
 ./sort_str $SRC $DST $TMPDIR

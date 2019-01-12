@@ -46,7 +46,7 @@ Back_Wait_Split_Module::svc()
         data->request_->end_ = data->request_->end_ < data->end_ ? data->end_ : data->request_->end_;
         data->request_->lock_.unlock();
         end = data->request_->end_;
-        SP_DEBUG("count(%d),size_split_buf(%d),end(%d),length(%d)\n", data->request_->count_,data->request_->size_split_buf,end,data->request_->length_);
+        //SP_LOGI("(%p)count(%d),size_split_buf(%d),end(%d),length(%d)\n",data->request_, data->request_->count_,data->request_->size_split_buf,end,data->request_->length_);
         if (data->request_->count_ == data->request_->size_split_buf && data->request_->is_read_end_)
         {
             data->request_->is_read_end_ = false;
@@ -57,7 +57,18 @@ Back_Wait_Split_Module::svc()
             {
                 //for (uint8_t j = 0; j < 26; ++j)
                 uint8_t j=0;
+                for (j = 0; j < 26; ++j)
                 {
+                    if (!data->request_->str_list_[i][j].empty())
+                        break;
+                }
+                if (j == 26)
+                {
+                    data->request_->send_str_list_[i][0] = false;
+                    continue;
+                } else
+                {
+                    j = 0;
                     data->request_->send_str_list_[i][j] = true;
                     SP_NEW(next_data, Back_CRequest(data->request_));
                     next_data->idx_.emplace_back(i);

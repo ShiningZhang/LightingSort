@@ -68,7 +68,7 @@ Front_Write2File_Module::svc()
                 }
             }
         }
-        SP_LOGI("is_split_end_=%d,recv_split_count_=%d,send_split_count_=%d\n",
+        SP_DEBUG("is_split_end_=%d,recv_split_count_=%d,send_split_count_=%d\n",
             data->is_split_end_, data->recv_split_count_, data->send_split_count_);
         if (data->is_split_end_ && data->recv_split_count_ == data->send_split_count_)
         {

@@ -13,14 +13,12 @@
 #define BUFFER_ELEMENT_SIZE_SPLIT 1024 * 1024 * 16
 #define BUFFER_ELEMENT_COUNT 1024
 #define STR_LIST_SIZE 1024 * 1024
-#define BUFFER_ELEMENT_FRONT_SIZE 1024 * 256
+#define BUFFER_ELEMENT_FRONT_SIZE 1024 * 1024
 
 const static unsigned long long MAX_IN_SIZE = 1024 * 1024 * 1024;
 const static unsigned long long MAX_FRONT_IN_SIZE = MAX_IN_SIZE * 1.5;
 const static unsigned long long MAX_BACK_IN_SIZE = MAX_IN_SIZE;
 bool compare_char(const char *e1, const char *e2);
-bool compare_pair(const std::pair<char *, uint8_t> &e1, const std::pair<char *, uint8_t> &e2);
-
 
 class Buffer_Element : public SP_Data_Block
 {
@@ -54,6 +52,7 @@ public:
 };
 
 class Front_Request;
+class Back_Request;
 
 class File_Element
 {
@@ -84,3 +83,6 @@ extern std::vector<SP_Message_Queue*> mem_pool_rd;
 
 extern FILE * fp_in;
 extern FILE * fp_out;
+
+extern std::vector< Back_Request *> s_vec_back_request;
+

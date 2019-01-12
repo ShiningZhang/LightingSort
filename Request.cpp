@@ -65,7 +65,7 @@ Back_Request::Back_Request()
     for (size_t i = 0; i < 26; ++i)
         for (size_t j = 0; j < 26; ++j)
                 str_list_[i][j].reserve(STR_LIST_SIZE);
-    memset(send_str_list_, 0, sizeof(send_str_list_));
+    memset(send_str_list_, 1, sizeof(send_str_list_));
     memset(recv_str_list_, 0, sizeof(recv_str_list_));
 }
 
