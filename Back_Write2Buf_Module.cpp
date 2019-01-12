@@ -48,13 +48,8 @@ Back_Write2Buf_Module::svc()
         data = c_data->request_;
         idx = c_data->idx_[0];
         //idx1 = c_data->idx_[1];
-        if (!mem_pool_wt.is_empty())
-        {
-            mem_pool_wt.dequeue(msg_mem_pool);
-            buf = reinterpret_cast<Buffer_Element *>(msg_mem_pool->data());
-            SP_DES(msg_mem_pool);
-        } else
-            buf = new Buffer_Element(BUFFER_ELEMENT_SIZE);
+        
+            buf = new Buffer_Element(BUFFER_ELEMENT_BACK_SIZE);
         for(idx1=0;idx1<26;++idx1)
         {
             /*
@@ -84,13 +79,8 @@ Back_Write2Buf_Module::svc()
                     if ((buf->wt_pos + 130) > buf->length)
                     {
                         c_data->vec_buf_wt_.push_back(buf);
-                        if (!mem_pool_wt.is_empty())
-                        {
-                            mem_pool_wt.dequeue(msg_mem_pool);
-                            buf = reinterpret_cast<Buffer_Element *>(msg_mem_pool->data());
-                            SP_DES(msg_mem_pool);
-                        } else
-                            buf = new Buffer_Element(BUFFER_ELEMENT_SIZE);
+                        
+                            buf = new Buffer_Element(BUFFER_ELEMENT_BACK_SIZE);
                     }
                     for (k = 0; k < 128; ++k)
                     {

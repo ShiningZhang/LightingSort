@@ -50,7 +50,7 @@ Back_Write2File_Module::svc()
         c_data = reinterpret_cast<Back_CRequest *>(msg->data());
         data = c_data->request_;
         data->recv_str_list_[c_data->idx_[0]][c_data->idx_[1]] = c_data;
-        SP_DES(msg);
+        delete msg;
         while (vec_back_request_count < s_vec_back_request.size())
         {
             data = s_vec_back_request[vec_back_request_count];
@@ -59,8 +59,10 @@ Back_Write2File_Module::svc()
                 for (i = 0; i < data->head_buf_.size(); ++i)
                 {
                     if (data->head_buf_[i]->wt_pos != 0)
+                    {
                         write_count += fwrite(data->head_buf_[i]->ptr, sizeof(char), data->head_buf_[i]->wt_pos, data->fp_out_);
-                    SP_DES(data->head_buf_[i]);
+                    }
+                    delete data->head_buf_[i];
                 }
                 data->head_buf_.clear();
             }
@@ -107,14 +109,7 @@ Back_Write2File_Module::svc()
                     buf = c_data->vec_buf_wt_[i];
                     if (buf->wt_pos != 0)
                         write_count += fwrite(buf->ptr, sizeof(char), buf->wt_pos, data->fp_out_);
-                    if (mem_pool_wt.is_full())
-                        SP_DES(buf);
-                    else
-                    {
-                        buf->wt_pos = 0;
-                        SP_NEW(msg, SP_Message_Block_Base((SP_Data_Block *)buf));
-                        mem_pool_wt.enqueue(msg);
-                    }
+                    delete buf;
                 }
                 data->recv_str_list_[offset][offset1] = NULL;
                 /*
@@ -125,12 +120,13 @@ Back_Write2File_Module::svc()
                     offset1 = 0;
                 }*/
                 ++offset;
-                SP_DES(c_data);
+                delete c_data;
             }
             if (offset == 26)
             {
                 offset = 0;
                 offset1 = 0;
+                delete s_vec_back_request[vec_back_request_count];
                 vec_back_request_count++;
                 SP_DEBUG("vec_back_request_count=%d\n", vec_back_request_count);
                 SP_DEBUG("write_count(%zu)\n",write_count);

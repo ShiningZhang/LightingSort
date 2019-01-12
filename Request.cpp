@@ -26,6 +26,20 @@ Request::~Request()
 {
 }
 
+CRequest::CRequest(Request * r)
+    :buffer_(NULL)
+    ,begin_(0)
+    ,end_(0)
+    ,idx_(0)
+    ,request_(r)
+{
+}
+
+CRequest::~CRequest()
+    {
+}
+
+
 Front_Request::Front_Request()
     :buffer_(0)
     ,begin_(0)
@@ -45,6 +59,24 @@ Front_Request::Front_Request()
     memset(send_str_list_, 0, sizeof(send_str_list_));
     memset(recv_str_list_, 0, sizeof(recv_str_list_));
 }
+
+Front_Request::~Front_Request()
+{
+}
+
+Front_CRequest::Front_CRequest(Front_Request * r)
+    :buffer_(NULL)
+    ,begin_(0)
+    ,end_(0)
+    ,idx_(0)
+    ,request_(r)
+{
+}
+
+Front_CRequest::~Front_CRequest()
+    {
+}
+
 
 Back_Request::Back_Request()
     :buffer_(0)
@@ -67,5 +99,22 @@ Back_Request::Back_Request()
                 str_list_[i][j].reserve(STR_LIST_SIZE);
     memset(send_str_list_, 1, sizeof(send_str_list_));
     memset(recv_str_list_, 0, sizeof(recv_str_list_));
+}
+
+Back_Request::~Back_Request()
+    {
+}
+
+Back_CRequest::Back_CRequest(Back_Request * r)
+    :buffer_(NULL)
+    ,begin_(0)
+    ,end_(0)
+    ,idx_(0)
+    ,request_(r)
+{
+}
+
+Back_CRequest::~Back_CRequest()
+    {
 }
 

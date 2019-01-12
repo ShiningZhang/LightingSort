@@ -30,6 +30,7 @@ public:
     int close();
     void open();
     int size();
+    void size(int hwm);
 protected:
     int enqueue_i(SP_Message_Block_Base *);
     int dequeue_i(SP_Message_Block_Base *&);
@@ -56,6 +57,13 @@ inline int SP_Message_Queue::size()
     std::lock_guard<std::mutex> lock(this->mutex_);
     return cur_count_;
 }
+
+inline void SP_Message_Queue::size(int hwm)
+{
+    std::lock_guard<std::mutex> lock(this->mutex_);
+    high_water_mark_ = hwm;
+}
+
 
 #endif
 

@@ -45,6 +45,16 @@ Back_ReadFile_Module::svc()
         for (int i = 0; i < s_vec_back_request.size(); ++i)
         {
             data = s_vec_back_request[i];
+            /*
+             if (data->idx_.size() == 2)
+                 SP_LOGE("Back_ReadFile_Module:(%d,%d)\n",
+                     data->idx_[0], data->idx_[1]);
+             else if (data->idx_.size() == 4)
+                 SP_LOGE("Back_ReadFile_Module:(%d,%d,%d,%d)\n",
+                     data->idx_[0], data->idx_[1],data->idx_[2], data->idx_[3]);
+             else
+                 SP_LOGE("Back_ReadFile_Module: idx.size=%d\n", data->idx_.size());
+                 */
             begin = data->begin_;
             end = data->end_;
             length = data->length_;
@@ -106,6 +116,7 @@ Back_ReadFile_Module::svc()
                 put_next(msg);
             }
             data->is_read_end_ = true;
+            fclose(data->fp_in_);
         }
         gettimeofday(&t2,0);
         SP_DEBUG("Back_ReadFile_Module=%ldms.\n", (t2.tv_sec-start.tv_sec)*1000+(t2.tv_usec-start.tv_usec)/1000);

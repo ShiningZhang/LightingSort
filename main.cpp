@@ -8,6 +8,7 @@
 #include<sys/time.h>
 #include <mutex>
 #include <sys/stat.h>
+#include <unistd.h>
 
 
 #include "SP_Stream.h"
@@ -274,7 +275,7 @@ int main(int argc, char *argv[])
             rd_pos += data->length_;
             split_size++;
         }
-        SP_DES(msg);
+        delete msg;
         for(int i=0;i<26;++i)
         {
             for(int j =0;j<26;++j)
@@ -326,7 +327,7 @@ int main(int argc, char *argv[])
                         }
                         tmp_rd_pos += front_data->length_;
                     }
-                    SP_DES(msg);
+                    delete msg;
                     for (int m = 0; m < 26; ++m)
                     {
                         for (int n = 0; n < 26; ++n)
@@ -335,6 +336,7 @@ int main(int argc, char *argv[])
                             rewind (front_data->vec_mid_fp_[m][n]->fp_);
                         }
                     }
+                    fclose(data->vec_mid_fp_[i][j]->fp_);
                 }
             }
         }
@@ -353,8 +355,9 @@ int main(int argc, char *argv[])
         SP_LOGI("sigle=%d,double=%d\n", single_count, double_count);
         SP_LOGI("wt_size=%lld\n", wt_size);
         //SP_DES(data);
-        //s_instance_stream->close();
-        //SP_DES(s_instance_stream);
+        s_instance_stream->close();
+        delete s_instance_stream;
+        fclose(fp_in);
 #ifdef TIME_TEST
         gettimeofday(&t2, NULL);
         SP_LOGI("cost front =%ld.\n", (t2.tv_sec-t1.tv_sec)*1000+(t2.tv_usec-t1.tv_usec)/1000);
@@ -366,6 +369,25 @@ int main(int argc, char *argv[])
             free(buffer);
             buffer = (char*) malloc (sizeof(char)*MAX_BACK_IN_SIZE);
         }
+
+        int max_in_size = 26;
+        if (in_size < MAX_BACK_IN_SIZE * 2 + 10000)
+        {
+            max_in_size = 26;
+        }
+        else if (in_size < MAX_BACK_IN_SIZE * 6 + 10000)
+        {
+            max_in_size = 6;
+        }
+        else if (in_size < MAX_BACK_IN_SIZE * 10 + 10000)
+        {
+            max_in_size = 3;
+        }
+        else
+        {
+            max_in_size = 2;
+        }
+        max_in_size = 2;
 
         SP_Stream *back_stream = NULL;
         SP_Module *back_modules[6];
@@ -381,13 +403,14 @@ int main(int argc, char *argv[])
         {
             back_stream->push_module(back_modules[i]);
         }
-
-        for (size_t i = 0; i < BUFFER_ELEMENT_COUNT; ++i)
+/*
+        mem_pool_wt.size(BUFFER_ELEMENT_BACK_COUNT);
+        for (size_t i = 0; i < BUFFER_ELEMENT_BACK_COUNT; ++i)
         {
-            SP_NEW_RETURN(buf, Buffer_Element(BUFFER_ELEMENT_SIZE), -1);
+            SP_NEW_RETURN(buf, Buffer_Element(BUFFER_ELEMENT_BACK_SIZE), -1);
             SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
             mem_pool_wt.enqueue(msg);
-        }
+        }*/
         
         Back_Request * back_data = new Back_Request();
         msg = new SP_Message_Block_Base((SP_Data_Block *)back_data);
@@ -433,7 +456,7 @@ int main(int argc, char *argv[])
                     continue;
                 //SP_LOGI("(%d,%d)after. size(%d), total_perpared_size(%zu)\n",i,j,data->vec_mid_fp_[i][j]->size_,total_perpared_size);
                 if (total_perpared_size + data->vec_mid_fp_[i][j]->size_ < MAX_BACK_IN_SIZE
-                    && s_vec_back_request.size() < 26)
+                    && s_vec_back_request.size() < max_in_size)
                 {
                     //SP_LOGI("(%d,%d)(%p)total=%zu,fp_size=%d\n",i,j,back_data,total_perpared_size,data->vec_mid_fp_[i][j]->size_);
                     back_data->idx_.clear();
@@ -471,8 +494,6 @@ int main(int argc, char *argv[])
                         {
                             SP_LOGE("processing : Get Msg failed!\n");
                         }
-                        for (int k = 0; k < s_vec_back_request.size(); ++k)
-                            delete s_vec_back_request[k];
                         s_vec_back_request.clear();
                         total_perpared_size = 0;
                     }
@@ -505,7 +526,22 @@ int main(int argc, char *argv[])
                     SP_LOGE("main: error wrong way!");
                 } else
                 {
-                    SP_DEBUG("(%d,%d)Large file.\n", i,j);
+                    if (!s_vec_back_request.empty())
+                    {
+                        SP_DEBUG("in:total_perpared_size=%lld,size=%d\n",total_perpared_size,s_vec_back_request.size());
+                        msg->data((SP_Data_Block *)(s_vec_back_request.back()));
+                        if (back_stream->put(msg) == -1)
+                        {
+                            SP_LOGE("processing : Put Msg failed!\n");
+                        }
+                        if (back_stream->get(msg) == -1)
+                        {
+                            SP_LOGE("processing : Get Msg failed!\n");
+                        }
+                        s_vec_back_request.clear();
+                        total_perpared_size = 0;
+                    }
+                    SP_LOGI("(%d,%d)Large file.\n", i,j);
                     Front_Request *front_data = data->vec_mid_fp_[i][j]->data;
                     for (int m = 0; m < 26; ++m)
                     {
@@ -551,7 +587,7 @@ int main(int argc, char *argv[])
                             if (front_data->vec_mid_fp_[m][n]->size_ == 0)
                                 continue;
                             if (total_perpared_size + front_data->vec_mid_fp_[m][n]->size_ < MAX_BACK_IN_SIZE
-                                && s_vec_back_request.size() < 26)
+                                && s_vec_back_request.size() < max_in_size)
                             {
                                 back_data->idx_.clear();
                                 back_data->idx_.emplace_back(i);
@@ -588,8 +624,6 @@ int main(int argc, char *argv[])
                                 {
                                     SP_LOGE("processing : Get Msg failed!\n");
                                 }
-                                for (int k = 0; k < s_vec_back_request.size(); ++k)
-                                    delete s_vec_back_request[k];
                                 s_vec_back_request.clear();
                                 back_data->idx_.clear();
                                 back_data->idx_.emplace_back(i);
@@ -631,8 +665,6 @@ int main(int argc, char *argv[])
             {
                 SP_LOGE("processing : Get Msg failed!\n");
             }
-            for (int k = 0; k < s_vec_back_request.size(); ++k)
-                delete s_vec_back_request[k];
             s_vec_back_request.clear();
             total_perpared_size = 0;
         }
@@ -647,7 +679,6 @@ int main(int argc, char *argv[])
     //s_instance_stream->close();
     //SP_DES(s_instance_stream);
 
-    fclose(fp_in);
     fclose(fp_out);
 
     //free(buffer);

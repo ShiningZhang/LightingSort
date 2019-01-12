@@ -43,14 +43,8 @@ public:
 class CRequest : public SP_Data_Block
 {
 public:
-    CRequest(Request *r)
-        :buffer_(NULL)
-        ,begin_(0)
-        ,end_(0)
-        ,idx_(0)
-        ,request_(r)
-        {};
-    ~CRequest(){};
+    CRequest(Request *r);
+    virtual ~CRequest();
 
     std::mutex lock_;
     char * buffer_;
@@ -65,7 +59,7 @@ class Front_Request : public SP_Data_Block
 {
 public:
     Front_Request();
-    virtual ~Front_Request(){};
+    virtual ~Front_Request();
 
 public:
     std::mutex lock_;
@@ -97,14 +91,8 @@ public:
 class Front_CRequest : public SP_Data_Block
 {
 public:
-    Front_CRequest(Front_Request *r)
-        :buffer_(NULL)
-        ,begin_(0)
-        ,end_(0)
-        ,idx_(0)
-        ,request_(r)
-        {};
-    ~Front_CRequest(){};
+    Front_CRequest(Front_Request *r);
+    virtual ~Front_CRequest();
 
     std::mutex lock_;
     char * buffer_;
@@ -119,7 +107,7 @@ class Back_Request : public SP_Data_Block
 {
 public:
     Back_Request();
-    ~Back_Request(){};
+    virtual ~Back_Request();
 
     std::mutex lock_;
     char * buffer_;
@@ -149,14 +137,8 @@ public:
 class Back_CRequest : public SP_Data_Block
 {
 public:
-    Back_CRequest(Back_Request *r)
-        :buffer_(NULL)
-        ,begin_(0)
-        ,end_(0)
-        ,idx_(0)
-        ,request_(r)
-        {};
-    ~Back_CRequest(){};
+    Back_CRequest(Back_Request *r);
+    virtual ~Back_CRequest();
 
     std::mutex lock_;
     char * buffer_;
