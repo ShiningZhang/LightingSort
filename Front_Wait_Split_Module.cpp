@@ -48,26 +48,13 @@ Front_Wait_Split_Module::svc()
         data->request_->lock_.unlock();
         end = data->request_->end_;
         SP_DEBUG("count(%d),size_split_buf(%d),end(%d),length(%d)\n", data->request_->count_,data->request_->size_split_buf,end,data->request_->length_);
-        if (data->request_->count_ == data->request_->size_split_buf && data->request_->is_read_end_)
+        if (data->request_->is_read_end_)
         {
-            data->request_->lock_.lock();
-            data->request_->count_ = 0;
-            data->request_->is_read_end_ = false;
-            data->request_->lock_.unlock();
-            for (uint8_t i = 0; i < 26; ++i)
-            {
-                //for (uint8_t j = 0; j < 26; ++j)
-                uint8_t j=0;
-                {
-                        ++data->request_->count_;
-                        data->request_->send_str_list_[i][j] = true;
-                        SP_NEW(next_data, Front_CRequest(data->request_));
-                        next_data->idx_.emplace_back(std::make_pair(i, j));
-                        SP_NEW(next_msg, SP_Message_Block_Base((SP_Data_Block *)next_data));
-                        put_next(next_msg);
-                }
-            }
-        }
+            data->request_->send_split_count_++;
+            put_next(msg);
+            if (data->request_->count_ == data->request_->size_split_buf)
+                data->request_->is_split_end_ = true;
+        } else
         {
             SP_DES(msg);
             SP_DES(data);

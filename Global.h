@@ -16,7 +16,7 @@
 #define BUFFER_ELEMENT_FRONT_SIZE 1024 * 256
 
 const static unsigned long long MAX_IN_SIZE = 1024 * 1024 * 1024;
-const static unsigned long long MAX_FRONT_IN_SIZE = MAX_IN_SIZE;
+const static unsigned long long MAX_FRONT_IN_SIZE = MAX_IN_SIZE * 1.5;
 const static unsigned long long MAX_BACK_IN_SIZE = MAX_IN_SIZE;
 bool compare_char(const char *e1, const char *e2);
 bool compare_pair(const std::pair<char *, uint8_t> &e1, const std::pair<char *, uint8_t> &e2);

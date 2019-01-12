@@ -39,58 +39,38 @@ Front_Write2File_Module::svc()
     size_t write_count = 0;
     size_t single_count = 0;
     size_t single_write_count = 0;
+    std::vector<Buffer_Element*> tmp_vec_buf;
     for (SP_Message_Block_Base *msg = 0; get(msg) != -1;)
     {
         timeval t2,start;
         gettimeofday(&start,0);
         c_data = reinterpret_cast<Front_CRequest *>(msg->data());
         data = c_data->request_;
-        data->recv_str_list_[c_data->idx_[0].first][c_data->idx_[0].second] = c_data;
+        data->recv_split_count_++;
         SP_DES(msg);
-        while (offset < 26)
+        SP_DES(c_data);
+        for (offset = 0; offset < 26; ++offset)
         {
-            if (data->send_str_list_[offset][offset1])
-            {
-                if (data->recv_str_list_[offset][offset1] == NULL)
-                    break;
-            } else
-            {
-                /*
-                ++offset1;
-                if (offset1 == 26)
-                {
-                    ++offset;
-                    offset1 = 0;
-                }*/
-                ++offset;
-                continue;
-            }
-            c_data = data->recv_str_list_[offset][offset1];
             for (j = 0; j < 26; ++j)
             {
-                for (i = 0; i < data->vec_buf_[offset][j].size(); ++i)
+                data->lock_str_list_[offset][j].lock();
+                tmp_vec_buf = data->vec_buf_[offset][j];
+                data->vec_buf_[offset][j].clear();
+                data->lock_str_list_[offset][j].unlock();
+                for (i = 0; i < tmp_vec_buf.size(); ++i)
                 {
-                    buf = data->vec_buf_[offset][j][i];
+                    buf = tmp_vec_buf[i];
                     if (buf->wt_pos != 0)
                         write_count += fwrite(buf->ptr, sizeof(char), buf->wt_pos, data->vec_mid_fp_[offset][j]->fp_);
                     data->vec_mid_fp_[offset][j]->size_ += buf->wt_pos;
                     SP_DEBUG("(%d,%d)i=%d,buf(%p),wt_pos(%d)\n",offset,j,i,buf,buf->wt_pos);
                     SP_DES(buf);
                 }
-                data->vec_buf_[offset][j].clear();
             }
-            data->recv_str_list_[offset][offset1] = NULL;
-            /*
-            ++offset1;
-            if (offset1 == 26)
-            {
-                ++offset;
-                offset1 = 0;
-            }*/
-            ++offset;
-            SP_DES(c_data);
         }
-        if (offset == 26)
+        SP_LOGI("is_split_end_=%d,recv_split_count_=%d,send_split_count_=%d\n",
+            data->is_split_end_, data->recv_split_count_, data->send_split_count_);
+        if (data->is_split_end_ && data->recv_split_count_ == data->send_split_count_)
         {
             offset = 0;
             offset1 = 0;

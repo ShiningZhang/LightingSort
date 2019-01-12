@@ -89,6 +89,9 @@ public:
     vector<vector<vector<Buffer_Element*>>> vec_buf_;
     int split_size_;
     bool is_read_end_;
+    bool is_split_end_;
+    size_t send_split_count_;
+    size_t recv_split_count_;
 };
 
 class Front_CRequest : public SP_Data_Block

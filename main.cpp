@@ -273,6 +273,9 @@ int main(int argc, char *argv[])
             data->fp_out_ = NULL;
             data->fp_in_ = fp_in;
             data->is_read_end_ = false;
+            data->is_split_end_ = false;
+            data->send_split_count_ = 0;
+            data->recv_split_count_ = 0;
             if (s_instance_stream->put(msg) == -1)
             {
                 SP_LOGE("processing : Put Msg failed!\n");
@@ -291,7 +294,6 @@ int main(int argc, char *argv[])
             {
                 data->vec_mid_fp_[i][j]->size_ = ftell(data->vec_mid_fp_[i][j]->fp_);
                 rewind (data->vec_mid_fp_[i][j]->fp_);
-                //TODO MAX_BACK_IN_SIZE
                 if (data->vec_mid_fp_[i][j]->size_ > MAX_BACK_IN_SIZE)
                 {
                     Front_Request * front_data = new Front_Request();
@@ -324,6 +326,9 @@ int main(int argc, char *argv[])
                         front_data->fp_out_ = NULL;
                         front_data->fp_in_ = data->vec_mid_fp_[i][j]->fp_;
                         front_data->is_read_end_ = false;
+                        front_data->is_split_end_ = false;
+                        front_data->send_split_count_ = 0;
+                        front_data->recv_split_count_ = 0;
                         if (s_instance_stream->put(msg) == -1)
                         {
                             SP_LOGE("processing : Put Msg failed!\n");
