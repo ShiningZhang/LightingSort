@@ -52,18 +52,18 @@ Back_Split_Module::svc()
                     ++end;
                     continue;
                 }
-                if (begin + 3 == end)
+                if (begin + 1 == end)
                 {
-                    offset = buf[begin + 2]-'a';
+                    offset = buf[begin]-'a';
                     data->request_->lock_single_str_[offset].lock();
                     ++(data->request_->single_str_count_[offset]);
                     data->request_->lock_single_str_[offset].unlock();
                 } else
                 {
-                    offset = buf[begin+2]-'a';
-                    offset1 = buf[begin+3]-'a';
+                    offset = buf[begin]-'a';
+                    offset1 = buf[begin+1]-'a';
                     data->request_->lock_str_list_[offset][offset1].lock();
-                    data->request_->str_list_[offset][offset1].push_back(buf + begin + 4);
+                    data->request_->str_list_[offset][offset1].push_back(buf + begin + 2);
                     data->request_->lock_str_list_[offset][offset1].unlock();
                 }
                 begin = ++end;

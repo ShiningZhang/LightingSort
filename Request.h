@@ -133,6 +133,7 @@ public:
     size_t size_split_buf;
     int is_read_end_;
     char head_str_[128];
+    uint8_t head_str_size_;
     bool send_str_list_[26][26];
     Back_CRequest* recv_str_list_[26][26];
     FILE *fp_in_;

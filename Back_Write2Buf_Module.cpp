@@ -34,6 +34,7 @@ Back_Write2Buf_Module::svc()
     thread_num = sthread_num++;
     lock_.unlock();
     Back_CRequest * c_data = NULL;
+    Back_Request * data = NULL;
     uint8_t idx, idx1;
     SP_Message_Block_Base *msg_mem_pool;
     Buffer_Element *buf;
@@ -44,6 +45,7 @@ Back_Write2Buf_Module::svc()
         timeval t2,start;
         gettimeofday(&start,0);
         c_data = reinterpret_cast<Back_CRequest *>(msg->data());
+        data = c_data->request_;
         idx = c_data->idx_[0];
         //idx1 = c_data->idx_[1];
         if (!mem_pool_wt.is_empty())
@@ -75,9 +77,9 @@ Back_Write2Buf_Module::svc()
             }*/
             //for (i = 0; i < 26; ++i)
             {
-                if (c_data->request_->str_list_[idx][idx1].empty())
+                if (data->str_list_[idx][idx1].empty())
                     continue;
-                for (j = 0; j < c_data->request_->str_list_[idx][idx1].size(); ++j)
+                for (j = 0; j < data->str_list_[idx][idx1].size(); ++j)
                 {
                     if ((buf->wt_pos + 130) > buf->length)
                     {
@@ -92,18 +94,19 @@ Back_Write2Buf_Module::svc()
                     }
                     for (k = 0; k < 128; ++k)
                     {
-                        if (*(c_data->request_->str_list_[idx][idx1][j] + k) == '\n')
+                        if (*(data->str_list_[idx][idx1][j] + k) == '\n')
                         {
                             break;
                         }
                     }
-                    wt_length = k + c_data->request_->idx_.size() + 3;
-                    memcpy(buf->ptr + buf->wt_pos, 
-                        c_data->request_->str_list_[idx][idx1][j] - 2 - c_data->request_->idx_.size(),
+                    wt_length = k + 3;
+                    memcpy(buf->ptr + buf->wt_pos, data->head_str_, data->head_str_size_);
+                    memcpy(buf->ptr + buf->wt_pos + data->head_str_size_,
+                        data->str_list_[idx][idx1][j] - 2,
                         wt_length);
-                    buf->wt_pos += wt_length;
+                    buf->wt_pos += wt_length + data->head_str_size_;
                 }
-                c_data->request_->str_list_[idx][idx1].clear();
+                data->str_list_[idx][idx1].clear();
             }
         }
         c_data->vec_buf_wt_.push_back(buf);

@@ -392,6 +392,9 @@ int main(int argc, char *argv[])
                 back_data->fp_out_ = fp_out;
                 back_data->fp_in_ = data->vec_mid_fp_[i][j].fp_;
                 back_data->is_read_end_ = false;
+                back_data->head_str_size_ = 2;
+                back_data->head_str_[0] = 'a' + i;
+                back_data->head_str_[1] = 'a' + j;
                 SP_DEBUG("(%d,%d)fp(%p),size=%d\n", i,j,data->vec_mid_fp_[i][j].fp_,data->vec_mid_fp_[i][j].size_);
                 if (back_stream->put(msg) == -1)
                 {

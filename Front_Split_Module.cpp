@@ -88,8 +88,8 @@ Front_Split_Module::svc()
                         data->vec_buf_wt_[offset][offset1] = new Buffer_Element(BUFFER_ELEMENT_FRONT_SIZE);
                     }
                     memcpy(data->vec_buf_wt_[offset][offset1]->ptr + data->vec_buf_wt_[offset][offset1]->wt_pos,
-                            buf + begin, end - begin + 1);
-                    data->vec_buf_wt_[offset][offset1]->wt_pos += end - begin + 1;
+                            buf + begin + 2, end - begin - 1);
+                    data->vec_buf_wt_[offset][offset1]->wt_pos += end - begin - 1;
                 }
                 begin = ++end;
             }

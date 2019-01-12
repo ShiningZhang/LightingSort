@@ -65,8 +65,8 @@ Back_Write2File_Module::svc()
             {
                 char temp[128];
                 size_t count = 0;
-                for (i = 0; i < data->idx_.size(); ++i)
-                    temp[i] = 'a' + data->idx_[i];
+                memcpy(temp, data->head_str_, data->head_str_size_);
+                i = data->head_str_size_;
                 temp[i++] = 'a' + offset;
                 temp[i++] = '\n';
                 size_t size = i;

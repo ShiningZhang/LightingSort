@@ -53,6 +53,7 @@ Back_Request::Back_Request()
     ,is_read_end_(false)
     ,head_single_str_(0)
     ,head_double_str_(0)
+    ,head_str_size_(0)
 {
     memset(single_str_count_, 0, sizeof(single_str_count_));
     str_list_.resize(26);
