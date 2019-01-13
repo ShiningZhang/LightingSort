@@ -385,9 +385,8 @@ int main(int argc, char *argv[])
         }
         else
         {
-            max_in_size = 2;
+            max_in_size = 1;
         }
-        max_in_size = 2;
 
         SP_Stream *back_stream = NULL;
         SP_Module *back_modules[6];
