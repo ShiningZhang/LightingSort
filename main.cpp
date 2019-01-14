@@ -9,7 +9,7 @@
 #include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <stack>
 
 #include "SP_Stream.h"
 #include "Global_Macros.h"
@@ -373,15 +373,15 @@ int main(int argc, char *argv[])
         int max_in_size = 26;
         if (in_size < MAX_BACK_IN_SIZE * 2 + 10000)
         {
-            max_in_size = 26;
+            max_in_size = 26 * 6;
         }
         else if (in_size < MAX_BACK_IN_SIZE * 6 + 10000)
         {
-            max_in_size = 6;
+            max_in_size = 26;
         }
         else if (in_size < MAX_BACK_IN_SIZE * 10 + 10000)
         {
-            max_in_size = 3;
+            max_in_size = 4;
         }
         else
         {
@@ -410,8 +410,15 @@ int main(int argc, char *argv[])
             SP_NEW_RETURN(msg, SP_Message_Block_Base((SP_Data_Block *)buf), -1);
             mem_pool_wt.enqueue(msg);
         }*/
-        
-        Back_Request * back_data = new Back_Request();
+
+        Back_Request * back_data = NULL;
+        stack<Back_Request *> stack_back_data;
+        for (int i = 0; i < max_in_size+1; ++i)
+        {
+            stack_back_data.push(new Back_Request());
+        }
+        back_data = stack_back_data.top();
+        stack_back_data.pop();
         msg = new SP_Message_Block_Base((SP_Data_Block *)back_data);
         size_t total_perpared_size = 0;
         for (int i = 0; i < 26; ++i)
@@ -475,7 +482,8 @@ int main(int argc, char *argv[])
                     back_data->head_str_[1] = 'a' + j;
                     total_perpared_size += data->vec_mid_fp_[i][j]->size_;
                     s_vec_back_request.emplace_back(back_data);
-                    back_data = new Back_Request();
+                    back_data = stack_back_data.top();
+                    stack_back_data.pop();
                     SP_DEBUG("1:(%d,%d)total_perpared_size=%lld,size=%d\n",
                         i,j,total_perpared_size,s_vec_back_request.size());
                     continue;
@@ -492,6 +500,12 @@ int main(int argc, char *argv[])
                         if (back_stream->get(msg) == -1)
                         {
                             SP_LOGE("processing : Get Msg failed!\n");
+                        }
+                        while(!s_vec_back_request.empty())
+                        {
+                            stack_back_data.push(s_vec_back_request.back());
+                            delete data->vec_mid_fp_[s_vec_back_request.back()->idx_[0]][s_vec_back_request.back()->idx_[1]];
+                            s_vec_back_request.pop_back();
                         }
                         s_vec_back_request.clear();
                         total_perpared_size = 0;
@@ -516,7 +530,8 @@ int main(int argc, char *argv[])
                         back_data->head_str_[1] = 'a' + j;
                         total_perpared_size += data->vec_mid_fp_[i][j]->size_;
                         s_vec_back_request.emplace_back(back_data);
-                        back_data = new Back_Request();
+                        back_data = stack_back_data.top();
+                        stack_back_data.pop();
                         continue;
                     }
                 }
@@ -536,6 +551,12 @@ int main(int argc, char *argv[])
                         if (back_stream->get(msg) == -1)
                         {
                             SP_LOGE("processing : Get Msg failed!\n");
+                        }
+                        while(!s_vec_back_request.empty())
+                        {
+                            stack_back_data.push(s_vec_back_request.back());
+                            delete data->vec_mid_fp_[s_vec_back_request.back()->idx_[0]][s_vec_back_request.back()->idx_[1]];
+                            s_vec_back_request.pop_back();
                         }
                         s_vec_back_request.clear();
                         total_perpared_size = 0;
@@ -609,7 +630,8 @@ int main(int argc, char *argv[])
                                 back_data->head_str_[3] = 'a' + n;
                                 total_perpared_size += data->vec_mid_fp_[i][j]->size_;
                                 s_vec_back_request.emplace_back(back_data);
-                                back_data = new Back_Request();
+                                back_data = stack_back_data.top();
+                                stack_back_data.pop();
                                 continue;
                             } else
                             {
@@ -622,6 +644,12 @@ int main(int argc, char *argv[])
                                 if (back_stream->get(msg) == -1)
                                 {
                                     SP_LOGE("processing : Get Msg failed!\n");
+                                }
+                                while(!s_vec_back_request.empty())
+                                {
+                                    stack_back_data.push(s_vec_back_request.back());
+                                    delete front_data->vec_mid_fp_[s_vec_back_request.back()->idx_[2]][s_vec_back_request.back()->idx_[3]];
+                                    s_vec_back_request.pop_back();
                                 }
                                 s_vec_back_request.clear();
                                 back_data->idx_.clear();
@@ -645,7 +673,8 @@ int main(int argc, char *argv[])
                                 back_data->head_str_[3] = 'a' + n;
                                 total_perpared_size += data->vec_mid_fp_[i][j]->size_;
                                 s_vec_back_request.emplace_back(back_data);
-                                back_data = new Back_Request();
+                                back_data = stack_back_data.top();
+                                stack_back_data.pop();
                             }
                         }
                     }

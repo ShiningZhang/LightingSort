@@ -39,7 +39,7 @@ Back_Wait_Split_Module::svc()
     Back_Request * request = NULL;
     SP_Message_Block_Base *next_msg = NULL;
     size_t end = 0;
-    bool recv_data[27];
+    bool recv_data[256];
     memset(recv_data, 0, sizeof(recv_data));
     int count = 0;
     uint8_t i,j;

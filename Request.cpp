@@ -86,8 +86,6 @@ Back_Request::Back_Request()
     ,count_(0)
     ,size_split_buf(0)
     ,is_read_end_(false)
-    ,head_single_str_(0)
-    ,head_double_str_(0)
     ,head_str_size_(0)
 {
     memset(single_str_count_, 0, sizeof(single_str_count_));

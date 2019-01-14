@@ -50,7 +50,7 @@ void SP_Module::activate(int n_threads /* = 1 */)
     std::lock_guard<std::mutex> thread_lock(this->thread_mutex_);
     for (int i = 0; i < n_threads; ++i)
     {
-        thread_pool.emplace_back(std::bind(&SP_Module::svc_run, this));
+        thread_pool.push_back(std::move(std::thread(&SP_Module::svc_run, this)));
     }
 }
 
@@ -74,16 +74,17 @@ void SP_Module::svc()
 
 }
 
-void SP_Module::svc_run()
+void SP_Module::svc_run(void *p)
 {
     SP_TRACE("SP_Module::svc_run\n");
 
-    svc();
-    std::lock_guard<std::mutex> lock(this->mutex_);
-    --thr_count_;
-    if (thr_count_ == 0)
+    SP_Module *ptr = reinterpret_cast<SP_Module *>(p);
+    ptr->svc();
+    std::lock_guard<std::mutex> lock(ptr->mutex_);
+    --ptr->thr_count_;
+    if (ptr->thr_count_ == 0)
     {
-        terminated_ = true;
+        ptr->terminated_ = true;
     }
 }
 

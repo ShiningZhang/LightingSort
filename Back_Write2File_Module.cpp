@@ -43,6 +43,7 @@ Back_Write2File_Module::svc()
     size_t single_count = 0;
     size_t single_write_count = 0;
     int vec_back_request_count = 0;
+    char temp[128];
     for (SP_Message_Block_Base *msg = 0; get(msg) != -1;)
     {
         timeval t2,start;
@@ -70,7 +71,6 @@ Back_Write2File_Module::svc()
             {
                 if (offset1 == 0 && data->single_str_count_[offset] != 0)
                 {
-                    char temp[128];
                     size_t count = 0;
                     memcpy(temp, data->head_str_, data->head_str_size_);
                     i = data->head_str_size_;
@@ -84,7 +84,7 @@ Back_Write2File_Module::svc()
                         count += size;
                     }
                     write_count += fwrite(temp_buf, sizeof(char), data->single_str_count_[offset] * size, data->fp_out_);
-                    delete temp_buf;
+                    delete []temp_buf;
                     data->single_str_count_[offset] = 0;
                 }
                 if (data->send_str_list_[offset][offset1])
@@ -126,7 +126,6 @@ Back_Write2File_Module::svc()
             {
                 offset = 0;
                 offset1 = 0;
-                delete s_vec_back_request[vec_back_request_count];
                 vec_back_request_count++;
                 SP_DEBUG("vec_back_request_count=%d\n", vec_back_request_count);
                 SP_DEBUG("write_count(%zu)\n",write_count);
@@ -138,6 +137,7 @@ Back_Write2File_Module::svc()
         if (vec_back_request_count== s_vec_back_request.size())
         {
             vec_back_request_count = 0;
+            fflush(data->fp_out_);
             SP_DEBUG("Back_Write2File_Module: END.\n");
             SP_DEBUG("write_count(%zu)\n",write_count);
             SP_DEBUG("single_count(%zu)\n",single_count);

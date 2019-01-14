@@ -115,7 +115,6 @@ public:
     size_t end_;
     size_t length_;
     std::vector<uint8_t> idx_;
-    Front_Request *request_;
     vector<vector<TEMPLIST>> str_list_;
     size_t single_str_count_[26];
     std::mutex lock_str_list_[26][26];
@@ -129,8 +128,6 @@ public:
     Back_CRequest* recv_str_list_[26][26];
     FILE *fp_in_;
     FILE *fp_out_;
-    size_t head_single_str_;
-    size_t head_double_str_;
     vector<Buffer_Element*> head_buf_;
 };
 
@@ -140,7 +137,6 @@ public:
     Back_CRequest(Back_Request *r);
     virtual ~Back_CRequest();
 
-    std::mutex lock_;
     char * buffer_;
     size_t begin_;
     size_t end_;

@@ -20,7 +20,7 @@ public:
     virtual void activate(int n_threads = 1);
     virtual void wait();
     virtual void svc();
-    virtual void svc_run();
+    static  void svc_run(void *);
     virtual int put(SP_Message_Block_Base *);
     virtual int get(SP_Message_Block_Base *&);
     void next(SP_Module *);
